@@ -26,10 +26,12 @@ fail() {
 }
 
 REPAIR=0
+NOLAUNCH=0
 ARGS=()
 for a in "$@"; do
   case "$a" in
     --repair) REPAIR=1 ;;
+    --no-launch) NOLAUNCH=1 ;;
     *) ARGS+=("$a") ;;
   esac
 done
@@ -89,6 +91,7 @@ if [ ! -x "$TOOLS/platform-tools/adb" ] && [ ! -x "$TOOLS/adb/adb" ] && ! comman
 fi
 
 # ---------------------------------------------------------------- start
+if [ "$NOLAUNCH" = 1 ]; then say 'Setup complete.'; exit 0; fi
 cd "$ROOT"
 say 'Starting Clash Rekt Bot...'
 nohup "$PY" runtime/run_bot.py ${ARGS[@]+"${ARGS[@]}"} >/dev/null 2>&1 &

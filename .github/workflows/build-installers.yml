@@ -1,0 +1,93 @@
+name: Build installers (macOS + Linux)
+
+# Builds the macOS .dmg and the Linux .deb / .tar.gz, tests each one by really installing it, running
+# the first-start setup and opening the app off-screen, then attaches them to the given release.
+# (The Windows installer is built with Inno Setup from installer/ClashRektBot.iss.)
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the installers to (e.g. v2.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-14
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - name: Build Clash Rekt Bot.app
+        run: python3 tools/build_unix_packages.py mac . build "$VERSION"
+      - name: App icon
+        run: |
+          set -e
+          SET=build/AppIcon.iconset; mkdir -p "$SET"
+          for s in 16 32 128 256 512; do
+            sips -z $s $s runtime/assets/crb_icon_1024.png --out "$SET/icon_${s}x${s}.png" >/dev/null
+            d=$((s * 2)); sips -z $d $d runtime/assets/crb_icon_1024.png --out "$SET/icon_${s}x${s}@2x.png" >/dev/null
+          done
+          iconutil -c icns "$SET" -o "build/Clash Rekt Bot.app/Contents/Resources/AppIcon.icns"
+      - name: Sign (ad-hoc, so macOS does not call the app damaged)
+        run: codesign --force --deep --sign - "build/Clash Rekt Bot.app"
+      - name: Test - first-start setup and the app window on macOS
+        run: |
+          set -e
+          "build/Clash Rekt Bot.app/Contents/MacOS/ClashRektBot" --no-launch
+          T="$HOME/Library/Application Support/Clash Rekt Bot"
+          "$T/.crb/venv/bin/python" tools/ci_smoke.py "$T" macos-dashboard.png
+      - name: Build the .dmg
+        run: |
+          set -e
+          mkdir dmg
+          cp -R "build/Clash Rekt Bot.app" dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Clash Rekt Bot" -srcfolder dmg -ov -format UDZO "ClashRektBot-${VERSION}-macOS.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            ClashRektBot-*-macOS.dmg
+            macos-dashboard.png
+      - name: Attach to the release
+        run: gh release upload "$TAG" "ClashRektBot-${VERSION}-macOS.dmg" --clobber
+
+  linux:
+    runs-on: ubuntu-22.04
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - name: Qt runtime libraries (for the off-screen check)
+        run: sudo apt-get update && sudo apt-get install -y rsync libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 libxcb-cursor0
+      - name: Build the .deb and .tar.gz
+        run: |
+          set -e
+          python3 tools/build_unix_packages.py linux . build "$VERSION"
+          dpkg-deb --root-owner-group --build build/deb "clash-rekt-bot_${VERSION}_all.deb"
+          tar -C build/deb/opt -czf "ClashRektBot-${VERSION}-linux.tar.gz" --transform 's,^clash-rekt-bot,ClashRektBot,' clash-rekt-bot
+      - name: Test - install the .deb, first-start setup and the app window on Linux
+        run: |
+          set -e
+          sudo apt-get install -y "./clash-rekt-bot_${VERSION}_all.deb"
+          clash-rekt-bot --no-launch
+          T="$HOME/.local/share/clash-rekt-bot"
+          "$T/.crb/venv/bin/python" tools/ci_smoke.py "$T" linux-dashboard.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            clash-rekt-bot_*_all.deb
+            ClashRektBot-*-linux.tar.gz
+            linux-dashboard.png
+      - name: Attach to the release
+        run: gh release upload "$TAG" "clash-rekt-bot_${VERSION}_all.deb" "ClashRektBot-${VERSION}-linux.tar.gz" --clobber
