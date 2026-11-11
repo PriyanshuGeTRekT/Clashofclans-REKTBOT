@@ -21,11 +21,19 @@ BUNDLE_ID = 'io.github.priyanshugetrekt.clashrektbot'
 WINDOWS_ONLY = ('runtime/Tools/adb', 'runtime/Tools/tesseract', 'Start Clash Rekt Bot.bat')
 
 
+BUILD_DIRS = ('build', 'dmg', 'dist')     # output folders inside the tree when building from a checkout
+
+
 def _payload(tree, dest, version):
+    tree = Path(tree).resolve()
+
     def ignore(dirpath, names):
-        rel = Path(dirpath).relative_to(tree).as_posix()
-        return [n for n in names if (f'{rel}/{n}' if rel != '.' else n) in WINDOWS_ONLY
+        rel = Path(dirpath).resolve().relative_to(tree).as_posix()
+        skip = [n for n in names if (f'{rel}/{n}' if rel != '.' else n) in WINDOWS_ONLY
                 or n in ('__pycache__', '.git', '.crb')]
+        if rel == '.':
+            skip += [n for n in names if n in BUILD_DIRS]   # never copy the package into itself
+        return skip
     shutil.copytree(tree, dest, ignore=ignore)
     (dest / 'VERSION').write_text(version + '\n', encoding='utf-8')
 
