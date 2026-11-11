@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Clash Rekt Bot crest: rekt-red shield, gold trim, crossed swords, cracked gold star -->
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF5F7E"/>
+      <stop offset="0.55" stop-color="#E8234B"/>
+      <stop offset="1" stop-color="#8E0F31"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE7A0"/>
+      <stop offset="1" stop-color="#F0A01C"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#E6ECFF"/>
+      <stop offset="1" stop-color="#A9B4D8"/>
+    </linearGradient>
+    <g id="sword">
+      <polygon points="128,40 138,58 138,164 118,164 118,58" fill="url(#steel)" stroke="#0B0E1A" stroke-width="5" stroke-linejoin="round"/>
+      <line x1="128" y1="56" x2="128" y2="158" stroke="#8E99C2" stroke-width="3"/>
+      <rect x="98" y="162" width="60" height="14" rx="6" fill="url(#gold)" stroke="#0B0E1A" stroke-width="5"/>
+      <rect x="120" y="176" width="16" height="30" rx="4" fill="#3A2A1C" stroke="#0B0E1A" stroke-width="5"/>
+      <circle cx="128" cy="214" r="10" fill="url(#gold)" stroke="#0B0E1A" stroke-width="5"/>
+    </g>
+  </defs>
+  <path d="M128 12 L228 48 V120 C228 184 186 226 128 246 C70 226 28 184 28 120 V48 Z"
+        fill="url(#shield)" stroke="#0B0E1A" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M128 32 L210 61 V120 C210 172 176 207 128 225 C80 207 46 172 46 120 V61 Z"
+        fill="none" stroke="url(#gold)" stroke-width="6" stroke-linejoin="round"/>
+  <use href="#sword" transform="rotate(-38 128 140)"/>
+  <use href="#sword" transform="rotate(38 128 140)"/>
+  <!-- cracked star where the blades cross -->
+  <polygon points="128,92 139,118 167,119 145,136 153,163 128,147 103,163 111,136 89,119 117,118"
+           fill="url(#gold)" stroke="#0B0E1A" stroke-width="6" stroke-linejoin="round"/>
+  <polyline points="128,104 122,124 134,132 126,152" fill="none" stroke="#0B0E1A" stroke-width="5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

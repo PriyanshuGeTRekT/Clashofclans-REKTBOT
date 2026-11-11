@@ -1,0 +1,34 @@
+NOTE  |Super Minion + Quake (ACBot). Army: Super Minions (any count), 11 Earthquake, heroes, any siege.
+NOTE  |Quakes on the main side; Super Minions spread over four half-sides so they snipe from range.
+      |EXTR. GOLD |EXTR.ELIXIR|EXTR. DARK |DEPO. GOLD |DEPO.ELIXIR|DEPO. DARK |TOWNHALL   |FORCED SIDE|
+SIDE  |0          |0          |0          |0          |0          |0          |60         |           |
+      |VECTOR_____|SIDE_______|DROP_POINTS|ADDTILES___|VERSUS_____|RANDOMX_PX_|RANDOMY_PX_|BUILDING___|
+MAKE  |A          |FRONT-LEFT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |B          |FRONT-RIGHT|10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |C          |LEFT-FRONT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |D          |RIGHT-FRONT|10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |Q          |FRONT-LEFT |10         |-8         |INT-EXT    |2          |2          |           |
+MAKE  |R          |FRONT-RIGHT|10         |-8         |INT-EXT    |2          |2          |           |
+MAKE  |S          |FRONT-LEFT |10         |-16        |INT-EXT    |2          |2          |           |
+MAKE  |T          |FRONT-RIGHT|10         |-16        |INT-EXT    |2          |2          |           |
+      |VECTOR_____|INDEX______|QTY_X_VECT_|TROOPNAME__|DELAY_DROP_|DELAYCHANGE|SLEEPAFTER_|___________|
+      |QUAKES (6 + 4 + 1)                                                                             |
+DROP  |Q-R        |2,5,8      |3          |ESpell     |200        |200        |0          |           |
+DROP  |S-T        |3,7        |2          |ESpell     |200        |200        |0          |           |
+DROP  |S          |5          |1          |ESpell     |200        |0          |800        |           |
+      |SIEGE AND MINIONS                                                                              |
+DROP  |A          |1          |1          |AnyS       |64         |0          |300        |           |
+DROP  |A-B        |1-10       |10         |SMini      |70         |40         |0          |           |
+DROP  |C-D        |1-10       |10         |SMini      |70         |40         |0          |           |
+DROP  |A-B        |1-10       |10         |Mini       |60         |40         |0          |           |
+      |HEROES                                                                                         |
+DROP  |A          |2          |1          |King       |32         |0          |0          |           |
+DROP  |B          |2          |1          |Queen      |32         |0          |0          |           |
+DROP  |A          |3          |1          |Warden     |32         |0          |0          |           |
+DROP  |B          |3          |1          |Champion   |32         |0          |0          |           |
+DROP  |A          |4          |1          |Prince     |32         |0          |0          |           |
+DROP  |B          |4          |1          |Duke       |32         |0          |0          |           |
+WAIT  |5000-7000  |           |           |           |           |           |           |           |
+DROP  |A-B        |4,7        |2          |RSpell     |200        |0          |0          |           |
+WAIT  |5000       |           |           |           |           |           |           |           |
+DROP  |A-B-C-D    |1-10       |10         |REMAIN     |100        |0          |0          |           |

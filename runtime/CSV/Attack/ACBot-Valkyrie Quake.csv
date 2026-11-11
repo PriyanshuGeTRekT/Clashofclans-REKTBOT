@@ -1,0 +1,37 @@
+NOTE  |Valkyrie + Quake (ACBot). Army: Valkyries or Super Valkyries, 11 Earthquake, heroes, any siege.
+NOTE  |Quakes open the wall rings on the main side; Valkyries follow through the gap with the heroes.
+      |EXTR. GOLD |EXTR.ELIXIR|EXTR. DARK |DEPO. GOLD |DEPO.ELIXIR|DEPO. DARK |TOWNHALL   |FORCED SIDE|
+SIDE  |0          |0          |0          |0          |0          |0          |60         |           |
+      |VECTOR_____|SIDE_______|DROP_POINTS|ADDTILES___|VERSUS_____|RANDOMX_PX_|RANDOMY_PX_|BUILDING___|
+MAKE  |A          |FRONT-LEFT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |B          |FRONT-RIGHT|10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |C          |LEFT-FRONT |6          |1          |INT-EXT    |4          |4          |           |
+MAKE  |D          |RIGHT-FRONT|6          |1          |INT-EXT    |4          |4          |           |
+MAKE  |Q          |FRONT-LEFT |10         |-6         |INT-EXT    |2          |2          |           |
+MAKE  |R          |FRONT-RIGHT|10         |-6         |INT-EXT    |2          |2          |           |
+MAKE  |S          |FRONT-LEFT |10         |-14        |INT-EXT    |2          |2          |           |
+MAKE  |T          |FRONT-RIGHT|10         |-14        |INT-EXT    |2          |2          |           |
+MAKE  |U          |FRONT-LEFT |10         |-22        |INT-EXT    |2          |2          |           |
+      |VECTOR_____|INDEX______|QTY_X_VECT_|TROOPNAME__|DELAY_DROP_|DELAYCHANGE|SLEEPAFTER_|___________|
+      |QUAKE THE WALL RINGS (4 + 4 + 3)                                                               |
+DROP  |Q-R        |2,6        |2          |ESpell     |200        |200        |0          |           |
+DROP  |S-T        |3,7        |2          |ESpell     |200        |200        |0          |           |
+DROP  |U          |1,5,9      |3          |ESpell     |200        |200        |1000       |           |
+      |SIEGE AND VALKYRIES                                                                            |
+DROP  |A          |1          |1          |AnyS       |64         |0          |500        |           |
+DROP  |A-B        |1-4        |4          |SValk      |90         |60         |0          |           |
+DROP  |A-B        |1-6        |6          |Valk       |90         |60         |1500       |           |
+      |HEROES                                                                                         |
+DROP  |A          |2          |1          |King       |32         |0          |0          |           |
+DROP  |B          |2          |1          |Queen      |32         |0          |0          |           |
+DROP  |A          |3          |1          |Warden     |32         |0          |0          |           |
+DROP  |B          |3          |1          |Champion   |32         |0          |0          |           |
+DROP  |A          |4          |1          |Prince     |32         |0          |0          |           |
+DROP  |B          |4          |1          |Duke       |32         |0          |0          |           |
+WAIT  |3000-4000  |           |           |           |           |           |           |           |
+      |SUPPORT                                                                                        |
+DROP  |C-D        |1-3        |3          |Witc       |80         |60         |0          |           |
+DROP  |C-D        |1-3        |3          |Wiza       |80         |60         |0          |           |
+DROP  |A-B        |5          |1          |RSpell     |200        |0          |0          |           |
+WAIT  |6000-8000  |           |           |           |           |           |           |           |
+DROP  |A-B        |1-5        |5          |REMAIN     |128        |0          |0          |           |

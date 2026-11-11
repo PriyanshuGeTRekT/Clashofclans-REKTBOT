@@ -1,0 +1,12 @@
+# Clash Rekt Bot - Python 3.12 libraries (installed by the launcher into .crb/venv)
+PySide6-Essentials==6.12.0
+opencv-python==5.0.0.93
+numpy==2.5.4
+psutil==7.2.2
+pytesseract==0.3.13
+uiautomator2==3.5.0
+adbutils==2.12.0
+Pillow==13.0.0
+lxml==6.1.3
+requests==2.34.2
+retry2==0.9.5

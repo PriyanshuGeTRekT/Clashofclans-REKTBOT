@@ -1,0 +1,28 @@
+NOTE  |Barch / Goblin farming (ACBot). Army: Barbarians, Archers and/or Goblins (normal or super).
+NOTE  |Spread all around the base to collect from outside collectors and storages; no spells needed.
+      |EXTR. GOLD |EXTR.ELIXIR|EXTR. DARK |DEPO. GOLD |DEPO.ELIXIR|DEPO. DARK |TOWNHALL   |FORCED SIDE|
+SIDE  |0          |0          |0          |0          |0          |0          |0          |BOT        |
+      |VECTOR_____|SIDE_______|DROP_POINTS|ADDTILES___|VERSUS_____|RANDOMX_PX_|RANDOMY_PX_|BUILDING___|
+MAKE  |A          |FRONT-LEFT |10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |B          |FRONT-RIGHT|10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |C          |LEFT-FRONT |10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |D          |LEFT-BACK  |10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |E          |BACK-LEFT  |10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |F          |BACK-RIGHT |10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |G          |RIGHT-BACK |10         |1          |INT-EXT    |6          |6          |           |
+MAKE  |H          |RIGHT-FRONT|10         |1          |INT-EXT    |6          |6          |           |
+      |VECTOR_____|INDEX______|QTY_X_VECT_|TROOPNAME__|DELAY_DROP_|DELAYCHANGE|SLEEPAFTER_|___________|
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |SBarb      |40         |20         |0          |           |
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |Barb       |30         |15         |0          |           |
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |SArch      |40         |20         |0          |           |
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |Arch       |30         |15         |0          |           |
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |SGobl      |40         |20         |0          |           |
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |Gobl       |30         |15         |0          |           |
+DROP  |A          |5          |1          |King       |32         |0          |0          |           |
+DROP  |B          |5          |1          |Queen      |32         |0          |0          |           |
+DROP  |C          |5          |1          |Warden     |32         |0          |0          |           |
+DROP  |D          |5          |1          |Champion   |32         |0          |0          |           |
+DROP  |E          |5          |1          |Prince     |32         |0          |0          |           |
+DROP  |F          |5          |1          |Duke       |32         |0          |0          |           |
+WAIT  |8000       |           |           |           |           |           |           |           |
+DROP  |A-B-C-D-E-F-G-H|1-10   |10         |REMAIN     |60         |0          |0          |           |

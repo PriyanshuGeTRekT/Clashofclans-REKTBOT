@@ -1,0 +1,91 @@
+NOTE  |Attack Drop: External Edges
+NOTE  |Clan Castle: Any Troops + Quake
+NOTE  |Siege Machine: Troop Launcher
+NOTE  |
+NOTE  |[5] Meteor Golems
+NOTE  |[5] Healers
+NOTE  |[1] Ruin Warden
+NOTE  |[2] Super Wall Breakers
+NOTE  |[3] Rage Spells
+NOTE  |[5] Totem Spells
+      |---------------------------------------------------------------------------------MeteorMayhem Start--------------------------------------------------------------------------------|
+      |_TROOPNAME_|__FLEXIBLE_|____TH06___|____TH07___|____TH08___|____TH09___|____TH10___|____TH11___|____TH12___|____TH13___|____TH14___|____TH15___|____TH16___|____TH17___|____TH18___|
+TRAIN |MeteorG    |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |6          |
+TRAIN |Heal       |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |5          |
+TRAIN |RuinW      |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |1          |
+TRAIN |SWall      |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |2          |
+TRAIN |RSpell     |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |3          |
+TRAIN |TSpell     |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |5          |
+TRAIN |TroopL     |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |1          |
+      |___________|___________|____TH06___|____TH07___|____TH08___|____TH09___|____TH10___|____TH11___|____TH12___|____TH13___|____TH14___|____TH15___|____TH16___|____TH17___|____TH18___|
+REDLN |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |4          |4          |4          |
+DRPLN |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |
+      |EXTR. GOLD |EXTR.ELIXIR|EXTR. DARK |DEPO. GOLD |DEPO.ELIXIR|DEPO. DARK |TOWNHALL   |FORCED SIDE|
+SIDE  |0          |0          |0          |0          |0          |0          |60         |           |
+      |EAGLE      |INFERNO    |XBOW       |WIZTOWER   |MORTAR     |AIRDEFENSE |MONOLITH   |GEMBOX     |
+SIDEB |90         |0          |0          |0          |0          |0          |0          |           |
+      |VECTOR_____|SIDE_______|DROP_POINTS|ADDTILES___|VERSUS_____|RANDOMX_PX_|RANDOMY_PX_|BUILDING___|
+      |TROOP SIDE                                                                                     |
+MAKE  |A          |FRONT-LEFT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |B          |FRONT-RIGHT|10         |1          |INT-EXT    |4          |4          |           |
+      |EVENT SIDES                                                                                    |
+MAKE  |C          |LEFT-FRONT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |D          |LEFT-BACK  |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |E          |BACK-LEFT  |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |F          |BACK-RIGHT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |G          |RIGHT-BACK |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |H          |RIGHT-FRONT|10         |1          |INT-EXT    |4          |4          |           |
+     |RAGE                                                                                           |
+MAKE  |I          |FRONT-LEFT |10         |-8         |INT-EXT    |4          |4          |           |
+MAKE  |J          |FRONT-RIGHT|10         |-8         |INT-EXT    |4          |4          |           |
+MAKE  |K          |FRONT-LEFT |10         |-12        |INT-EXT    |4          |4          |           |
+MAKE  |L          |FRONT-LEFT |10         |-16        |INT-EXT    |4          |4          |           |
+MAKE  |M          |FRONT-RIGHT|10         |-16        |INT-EXT    |4          |4          |           |
+      |QUAKE                                                                                          |
+MAKE  |R          |FRONT-LEFT |10         |-28        |INT-EXT    |4          |4          |           |
+MAKE  |T          |FRONT-RIGHT|10         |-28        |INT-EXT    |4          |4          |           |
+      |TOTEM                                                                                          |
+MAKE  |U          |FRONT-LEFT |10         |-27        |INT-EXT    |4          |4          |           |
+MAKE  |V          |FRONT-RIGHT|10         |-30        |INT-EXT    |4          |4          |           |
+MAKE  |X          |FRONT-LEFT |10         |-18        |INT-EXT    |4          |4          |           |
+MAKE  |Y          |FRONT-RIGHT|10         |-18        |INT-EXT    |4          |4          |           |
+MAKE  |Z          |FRONT-LEFT |10         |-23        |INT-EXT    |4          |4          |           |
+      |VECTOR_____|INDEX______|QTY_X_VECT_|TROOPNAME__|DELAY_DROP_|DELAYCHANGE|SLEEPAFTER_|___________|
+      |EVENT TROOP                                                                                    |
+DROP  |C-D        |9,7,5,3,1  |8          |TThrow     |64         |0          |0          |           |
+DROP  |E-F        |9,7,5,3,1  |9          |TThrow     |64         |0          |0          |           |
+DROP  |G-H        |9,7,5,3,1  |8          |TThrow     |64         |0          |0          |           |
+      |TROOP WAVE                                                                                     |
+DROP  |A-B        |6,4,2      |3          |MeteorG    |112        |0          |0          |           |
+DROP  |A          |4          |1          |Queen      |32         |0          |0          |           |
+DROP  |B          |4          |1          |King       |32         |0          |0          |           |
+DROP  |A-B        |3          |1          |SWall      |64         |0          |0          |           |
+      |SUPPORT                                                                                        |
+DROP  |A-B        |1          |3          |Heal       |72         |0          |0          |           |
+DROP  |A          |1          |1          |Prince     |32         |0          |0          |           |
+DROP  |A          |1          |1          |Warden     |32         |0          |0          |           |
+WAIT  |2000-3000  |           |           |           |           |           |           |           |
+      |SIEGES                                                                                         |
+DROP  |A          |1          |1          |AnyS       |64         |0          |0          |           |
+DROP  |A-B        |3          |1          |RuinW      |64         |0          |0          |           |
+      |RAGE                                                                                           |
+DROP  |I          |5          |1          |RSpell     |256        |0          |0          |           |
+DROP  |J          |4          |1          |RSpell     |256        |0          |0          |           |
+DROP  |K          |1          |1          |RSpell     |256        |0          |0          |           |
+      |HEROES                                                                                         |
+DROP  |B          |4          |1          |Champion   |32         |0          |0          |           |
+DROP  |B          |4          |1          |Duke       |32         |0          |0          |           |
+WAIT  |2000-3000  |           |           |           |           |           |           |           |
+      |MID TOTEM                                                                                      |
+DROP  |X          |4          |1          |TSpell     |256        |0          |0          |           |
+DROP  |Y          |4          |1          |TSpell     |256        |0          |0          |           |
+DROP  |Z          |5          |1          |TSpell     |256        |0          |0          |           |
+      |QUAKE                                                                                          |
+DROP  |R-T        |1-2        |2          |ESpell     |256        |0          |0          |           |
+WAIT  |7500-9000  |           |           |           |           |           |           |           |
+      |BACK TOTEM                                                                                     |
+DROP  |U          |4          |1          |TSpell     |256        |0          |0          |           |
+DROP  |V          |4          |1          |TSpell     |256        |0          |0          |           |
+      |REMAIN                                                                                         |
+DROP  |A-B        |1-5        |5          |REMAIN     |128        |0          |0          |           |
+      |---------------------------------------MeteorMayhem End----------------------------------------|

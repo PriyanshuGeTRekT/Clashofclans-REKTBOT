@@ -1,0 +1,79 @@
+NOTE  |Attack Drop: External Edges
+NOTE  |Clan Castle: Any Troops + Quake
+NOTE  |Siege Machine: Log Launcher
+NOTE  |King: Spiky Ball + Earthquake Boots / Pet Fox
+NOTE  |Queen: Action Figure + Healer Puppet / Pet Frost
+NOTE  |Warden: Eternal Tome + Rage Gem / Pet Sneezy
+NOTE  |Champion: Rocket Spear + Electric Boots / Pet Phoenix
+NOTE  |[Alt]Duke: Rocket Backpack + Fire Heart  / Pet Raven
+NOTE  |[Alt]Prince: Meteor Staff + Dark Orb / Pet Unicorn
+      |---------------------------------------------------------------------------------MeteorMayhem Start--------------------------------------------------------------------------------|
+      |_TROOPNAME_|__FLEXIBLE_|____TH06___|____TH07___|____TH08___|____TH09___|____TH10___|____TH11___|____TH12___|____TH13___|____TH14___|____TH15___|____TH16___|____TH17___|____TH18___|
+TRAIN |Valk       |0          |0          |0          |0          |0          |0          |0          |0          |0          |37         |40         |40         |42         |44         |
+TRAIN |Wall       |1          |0          |0          |0          |0          |0          |0          |0          |0          |1          |0          |0          |1          |0          |
+TRAIN |ESpell     |0          |0          |0          |0          |0          |0          |0          |0          |0          |11         |11         |11         |11         |11         |
+TRAIN |LogL       |0          |0          |0          |0          |0          |0          |0          |0          |0          |1          |1          |1          |1          |1          |
+      |___________|___________|____TH06___|____TH07___|____TH08___|____TH09___|____TH10___|____TH11___|____TH12___|____TH13___|____TH14___|____TH15___|____TH16___|____TH17___|____TH18___|
+REDLN |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |4          |4          |4          |4          |4          |
+DRPLN |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |
+      |EXTR. GOLD |EXTR.ELIXIR|EXTR. DARK |DEPO. GOLD |DEPO.ELIXIR|DEPO. DARK |TOWNHALL   |FORCED SIDE|
+SIDE  |0          |0          |0          |0          |0          |10         |0          |           |
+      |EAGLE      |INFERNO    |XBOW       |WIZTOWER   |MORTAR     |AIRDEFENSE |MONOLITH   |GEMBOX     |
+SIDEB |0          |0          |0          |0          |0          |0          |0          |           |
+      |VECTOR_____|SIDE_______|DROP_POINTS|ADDTILES___|VERSUS_____|RANDOMX_PX_|RANDOMY_PX_|BUILDING___|
+MAKE  |A          |FRONT-RIGHT|10         |0          |EXT-INT    |4          |4          |           |
+MAKE  |B          |FRONT-LEFT |10         |0          |INT-EXT    |4          |4          |           |
+MAKE  |C          |LEFT-FRONT |10         |0          |EXT-INT    |4          |4          |           |
+MAKE  |D          |LEFT-BACK  |10         |0          |INT-EXT    |4          |4          |           |
+MAKE  |E          |BACK-LEFT  |10         |0          |EXT-INT    |4          |4          |           |
+MAKE  |F          |BACK-RIGHT |10         |0          |INT-EXT    |4          |4          |           |
+MAKE  |G          |RIGHT-BACK |10         |0          |EXT-INT    |4          |4          |           |
+MAKE  |H          |RIGHT-FRONT|10         |0          |INT-EXT    |4          |4          |           |
+      |QUAKE                                                                                          |
+MAKE  |I          |FRONT-RIGHT|10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |J          |FRONT-LEFT |10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |K          |LEFT-FRONT |10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |L          |LEFT-BACK  |10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |M          |BACK-LEFT  |10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |N          |BACK-RIGHT |10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |O          |RIGHT-BACK |10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |P          |RIGHT-FRONT|10         |-7         |INT-EXT    |4          |4          |           |
+MAKE  |Q          |RANDOM     |10         |-7         |INT-EXT    |4          |4          |           |
+      |VECTOR_____|INDEX______|QTY_X_VECT_|TROOPNAME__|DELAY_DROP_|DELAYCHANGE|SLEEPAFTER_|___________|
+      |QUAKE                                                                                          |
+DROP  |I          |7          |1          |ESpell     |128        |0          |0          |           |
+DROP  |N          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |K          |7          |1          |ESpell     |128        |0          |0          |           |
+DROP  |P          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |M          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |J          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |Q          |5          |1          |ESpell     |128        |0          |0          |           |
+DROP  |O          |7          |1          |ESpell     |128        |0          |0          |           |
+DROP  |L          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |M          |7          |1          |ESpell     |128        |0          |0          |           |
+DROP  |O          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |I          |3          |1          |ESpell     |128        |0          |0          |           |
+DROP  |N          |7          |1          |ESpell     |128        |0          |0          |           |
+DROP  |P          |7          |1          |ESpell     |128        |0          |0          |           |
+DROP  |K          |3          |1          |ESpell     |128        |0          |0          |           |
+WAIT  |500-1000   |           |           |           |           |           |           |           |
+      |TROOP WAVE 360                                                                                 |
+DROP  |A-E        |1,3,5,7,9  |5          |Valk       |48         |0          |0          |           |
+DROP  |B-F        |1,3,5,7,9  |5          |Valk       |48         |0          |0          |           |
+DROP  |C-G        |1,3,5,7,9  |5          |Valk       |48         |0          |0          |           |
+DROP  |H-D        |1,3,5,7,9  |5          |Valk       |48         |0          |0          |           |
+DROP  |A-E        |1,3,5,7,9  |5          |Valk       |48         |0          |0          |           |
+WAIT  |500-1000   |           |           |           |           |           |           |           |
+      |HEROES                                                                                         |
+DROP  |A          |5          |1          |King       |32         |0          |0          |           |
+DROP  |A          |5          |1          |Queen      |32         |0          |0          |           |
+DROP  |A          |5          |1          |Warden     |32         |0          |0          |           |
+DROP  |A          |5          |1          |Champion   |32         |0          |0          |           |
+DROP  |A          |5          |1          |Prince     |32         |0          |0          |           |
+DROP  |A          |5          |1          |Duke       |32         |0          |0          |           |
+      |SIEGES                                                                                         |
+DROP  |A          |5          |1          |AnyS       |64         |0          |0          |           |
+WAIT  |2500-3500  |           |           |           |           |           |           |           |
+      |REMAIN                                                                                         |
+DROP  |A-B        |1-5        |5          |REMAIN     |96         |0          |0          |           |
+      |-----------------------------------------TroopSpam End-----------------------------------------| 
