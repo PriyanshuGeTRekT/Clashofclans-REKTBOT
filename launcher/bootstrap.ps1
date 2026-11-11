@@ -83,7 +83,8 @@ try {
     }
 
     # ------------------------------------------------------------------ desktop shortcut (kept up to date)
-    if (-not $NoShortcut) { try {
+    # (an installer-based install has its own Start menu / desktop shortcuts: unins000.exe marks it)
+    if (-not $NoShortcut -and -not (Test-Path (Join-Path $Root 'unins000.exe'))) { try {
         $desk = [Environment]::GetFolderPath('Desktop')
         $sh = New-Object -ComObject WScript.Shell
         $lnk = $sh.CreateShortcut((Join-Path $desk 'Clash Rekt Bot.lnk'))

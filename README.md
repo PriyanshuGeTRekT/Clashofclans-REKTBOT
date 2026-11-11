@@ -48,17 +48,26 @@ Everything that **spends resources** is **off** until you turn it on.
 ### 1. Get an emulator with Clash of Clans
 See [Emulator setup](#emulator-setup) below. In short, you need any Android emulator set to **1600 x 900, 300 DPI**, with **ADB on**, Clash of Clans installed, and your account logged in.
 
-### 2. Download Clash Rekt Bot
-Download the latest release zip (or **Code → Download ZIP**) and unzip it anywhere, for example to your Desktop.
+### 2. Install Clash Rekt Bot
+Get the installer for your system from the **[Releases page](https://github.com/PriyanshuGeTRekT/Clashofclans-REKTBOT/releases/latest)**:
 
-### 3. Start it
-| System | Do this |
-|---|---|
-| **Windows** | Double-click **`Start Clash Rekt Bot.bat`** |
-| **macOS** | Double-click **`Start Clash Rekt Bot.command`**. The first time, right-click it → **Open** → **Open**, because macOS asks before running downloaded scripts. |
-| **Linux** | Run `./start-clash-rekt-bot.sh` |
+| System | Download | Install |
+|---|---|---|
+| **Windows** 10/11 | `ClashRektBot-Setup-2.0.0.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
+| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.0.0-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
+| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.0.0_all.deb` | `sudo apt install ./clash-rekt-bot_2.0.0_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
+| **Linux** (any distro) | `ClashRektBot-2.0.0-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
+| **No installer** (any system) | `ClashRektBot-2.0.0.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
 
-The **first start** takes a few minutes. It downloads its own copy of Python 3.12, the libraries it needs and Google's `adb` into a hidden `.crb` folder inside the app folder. Nothing is installed on your system and no admin rights are needed. On Windows it also puts a **Clash Rekt Bot** shortcut on your desktop. After that, every start takes a couple of seconds.
+### 3. First start
+The first start takes a few minutes. A window shows the progress while it downloads its own copy of **Python 3.12**, the libraries it needs and Google's **adb**. Nothing else on your system is changed and no admin rights are needed. After that, every start takes a couple of seconds.
+
+Where the app keeps its files (settings, logs and the downloaded Python):
+- **Windows:** inside its install folder.
+- **macOS:** `~/Library/Application Support/Clash Rekt Bot`.
+- **Linux:** `~/.local/share/clash-rekt-bot`.
+
+Updating keeps your settings.
 
 ### 4. Connect and play
 1. Open your emulator.
@@ -222,11 +231,18 @@ Nothing to do. The first time the bot needs your village at the right size (for 
 | Want the old window back | Start `runtime/run_bot.py --classic`. |
 
 ## Files and privacy
+All paths are inside the app's folder (see [First start](#3-first-start) for where that is on each system):
 - **Settings:** `runtime/profiles/` (main settings, plus one folder per account).
 - **App preferences:** `runtime/bot.config` (theme, text size, window position).
 - **Logs and screenshots:** `runtime/logs/`. Each session's log is kept for 7 days.
 
-Nothing is sent anywhere: the bot only talks to your emulator. To uninstall, delete the folder (and the desktop shortcut).
+Nothing is sent anywhere: the bot only talks to your emulator.
+
+**Uninstall:**
+- **Windows:** **Settings → Apps → Clash Rekt Bot → Uninstall**. Your settings and logs stay in the install folder until you delete it.
+- **macOS:** drag the app to the Bin, and delete `~/Library/Application Support/Clash Rekt Bot`.
+- **Linux:** `sudo apt remove clash-rekt-bot`, and delete `~/.local/share/clash-rekt-bot`.
+- **Zip version:** delete the folder (and the desktop shortcut).
 
 ## Fair play
 Automating Clash of Clans is against Supercell's Terms of Service, and accounts that use bots can be banned. Use Clash Rekt Bot at your own risk, ideally on an account you can afford to lose. The bot plays at human speed and takes breaks if you enable them, but no bot is undetectable.
