@@ -1,0 +1,99 @@
+NOTE  |Attack Drop: External Edges
+NOTE  |Clan Castle: Any Troops + Quake
+NOTE  |Siege Machine: Log Launcher
+NOTE  |
+NOTE  |[8] Electro Dragons    [6] Super Dragons       [16] Dragons
+NOTE  |[16] Ballons           [16] Ballons
+NOTE  |[2] Baby Dragon        [2] Baby Dragon         [2] Baby Dragon
+NOTE  |[1] Witch              [1] Witch               [1] Witch
+NOTE  |[3] Rage Spells        [3] Rage Spells         [3] Rage Spells
+NOTE  |[5] Totem Spells       [5] Totem Spells        [5] Totem Spells
+      |----------------------------------------------------------------------------------DragLoon Start-----------------------------------------------------------------------------------|
+      |_TROOPNAME_|__FLEXIBLE_|____TH06___|____TH07___|____TH08___|____TH09___|____TH10___|____TH11___|____TH12___|____TH13___|____TH14___|____TH15___|____TH16___|____TH17___|____TH18___|
+TRAIN |EDrag      |0          |0          |0          |0          |0          |0          |7          |8          |8          |8          |8          |8          |8          |8          |
+TRAIN |Drag       |0          |0          |8          |8          |9          |10         |0          |0          |0          |0          |0          |0          |0          |0          |
+TRAIN |Ball       |0          |0          |8          |8          |8          |8          |10         |8          |12         |12         |16         |16         |20         |20         |
+TRAIN |Witc       |1          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |1          |
+TRAIN |ESpell     |0          |0          |0          |1          |1          |1          |1          |1          |1          |1          |1          |0          |0          |0          |
+TRAIN |RSpell     |0          |0          |3          |3          |4          |5          |5          |5          |5          |5          |5          |3          |3          |3          |
+TRAIN |TSpell     |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |5          |5          |5          |
+TRAIN |LogL       |0          |0          |0          |0          |0          |0          |0          |0          |1          |1          |1          |1          |1          |1          |
+      |___________|___________|____TH06___|____TH07___|____TH08___|____TH09___|____TH10___|____TH11___|____TH12___|____TH13___|____TH14___|____TH15___|____TH16___|____TH17___|____TH18___|
+REDLN |0          |0          |0          |4          |4          |4          |4          |4          |4          |4          |4          |4          |4          |4          |4          |
+DRPLN |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |0          |
+      |EXTR. GOLD |EXTR.ELIXIR|EXTR. DARK |DEPO. GOLD |DEPO.ELIXIR|DEPO. DARK |TOWNHALL   |FORCED SIDE|
+SIDE  |0          |0          |0          |0          |0          |0          |60         |           |
+      |EAGLE      |INFERNO    |XBOW       |WIZTOWER   |MORTAR     |AIRDEFENSE |SCATTER    |GEMBOX     |
+SIDEB |90         |0          |0          |0          |0          |0          |0          |           |
+      |VECTOR_____|SIDE_______|DROP_POINTS|ADDTILES___|VERSUS_____|RANDOMX_PX_|RANDOMY_PX_|BUILDING___|
+      |TROOP SIDE                                                                                     |
+MAKE  |A          |FRONT-LEFT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |B          |FRONT-RIGHT|10         |1          |INT-EXT    |4          |4          |           |
+      |EVENT SIDES                                                                                    |
+MAKE  |C          |LEFT-FRONT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |D          |LEFT-BACK  |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |E          |BACK-LEFT  |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |F          |BACK-RIGHT |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |G          |RIGHT-BACK |10         |1          |INT-EXT    |4          |4          |           |
+MAKE  |H          |RIGHT-FRONT|10         |1          |INT-EXT    |4          |4          |           |
+      |RAGE                                                                                           |
+MAKE  |I          |FRONT-LEFT |10         |-9         |INT-EXT    |4          |4          |           |
+MAKE  |J          |FRONT-RIGHT|10         |-9         |INT-EXT    |4          |4          |           |
+MAKE  |K          |FRONT-LEFT |10         |-9         |INT-EXT    |4          |4          |           |
+MAKE  |L          |FRONT-LEFT |10         |-16        |INT-EXT    |4          |4          |           |
+MAKE  |M          |FRONT-RIGHT|10         |-16        |INT-EXT    |4          |4          |           |
+      |QUAKE                                                                                          |
+MAKE  |R          |FRONT-LEFT |10         |-28        |INT-EXT    |4          |4          |           |
+MAKE  |T          |FRONT-RIGHT|10         |-28        |INT-EXT    |4          |4          |           |
+      |TOTEM                                                                                          |
+MAKE  |U          |FRONT-LEFT |10         |-27        |INT-EXT    |4          |4          |           |
+MAKE  |V          |FRONT-RIGHT|10         |-30        |INT-EXT    |4          |4          |           |
+MAKE  |X          |FRONT-LEFT |10         |-16        |INT-EXT    |4          |4          |           |
+MAKE  |Y          |FRONT-RIGHT|10         |-19        |INT-EXT    |4          |4          |           |
+MAKE  |Z          |FRONT-RIGHT|10         |-21        |INT-EXT    |4          |4          |           |
+      |                                                                                               |
+      |VECTOR_____|INDEX______|QTY_X_VECT_|TROOPNAME__|DELAY_DROP_|DELAYCHANGE|SLEEPAFTER_|___________|
+      |EVENT TROOP                                                                                    |
+DROP  |C-D        |9,7,5,3,1  |8          |TThrow     |64         |0          |0          |           |
+DROP  |E-F        |9,7,5,3,1  |9          |TThrow     |64         |0          |0          |           |
+DROP  |G-H        |9,7,5,3,1  |8          |TThrow     |64         |0          |0          |           |
+      |1ST TROOP WAVE                                                                                 |
+DROP  |A-B        |1,3,5,7    |4          |SDrag      |112        |0          |0          |           |
+DROP  |A-B        |7,5,3,1    |4          |EDrag      |112        |0          |0          |           |
+DROP  |A-B        |1,3,5,7    |4          |Drag       |112        |0          |0          |           |
+DROP  |A-B        |7,5,3,1    |4          |Drag       |112        |0          |0          |           |
+      |SUPPORT                                                                                        |
+DROP  |A          |1          |1          |Queen      |32         |0          |0          |           |
+DROP  |A          |1          |1          |Warden     |32         |0          |0          |           |
+      |RAGE                                                                                           |
+DROP  |I          |5          |1          |RSpell     |256        |0          |0          |           |
+DROP  |J          |4          |1          |RSpell     |256        |0          |0          |           |
+DROP  |K          |1          |1          |RSpell     |256        |0          |0          |           |
+      |2ND TROOP WAVE                                                                                 |
+DROP  |A-B        |6-1        |6          |Ball       |72         |0          |0          |           |
+DROP  |A-B        |1-6        |6          |Ball       |72         |0          |0          |           |
+DROP  |A          |1          |1          |Prince     |32         |0          |0          |           |
+WAIT  |2000-3000  |           |           |           |           |           |           |           |
+      |MID TOTEM                                                                                      |
+DROP  |X          |4          |1          |TSpell     |256        |0          |0          |           |
+DROP  |Y          |1          |1          |TSpell     |256        |0          |0          |           |
+DROP  |Z          |5          |1          |TSpell     |256        |0          |0          |           |
+      |SIEGE                                                                                          |
+DROP  |A          |1          |1          |King       |32         |0          |0          |           |
+DROP  |A          |1          |1          |AnyS       |64         |0          |0          |           |
+DROP  |A          |1          |1          |Witc       |64         |0          |0          |           |
+      |HEROES                                                                                         |
+DROP  |B          |6          |1          |Champion   |32         |0          |0          |           |
+DROP  |B          |6          |1          |Duke       |32         |0          |0          |           |
+      |MID RAGE                                                                                       |
+DROP  |L          |2          |1          |RSpell     |256        |0          |0          |           |
+DROP  |M          |3          |1          |RSpell     |256        |0          |0          |           |
+      |QUAKE                                                                                          |
+DROP  |R-T        |1-2        |2          |ESpell     |256        |0          |0          |           |
+WAIT  |12000-15000|           |           |           |           |           |           |           |
+      |BACK TOTEM                                                                                     |
+DROP  |U          |4          |1          |TSpell     |256        |0          |0          |           |
+DROP  |V          |1          |1          |TSpell     |256        |0          |0          |           |
+      |REMAIN                                                                                         |
+DROP  |A-B        |1-5        |5          |REMAIN     |128        |0          |0          |           |
+      |-----------------------------------------DragLoon End------------------------------------------|

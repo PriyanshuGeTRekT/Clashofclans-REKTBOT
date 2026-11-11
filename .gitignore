@@ -1,0 +1,9 @@
+.crb/
+__pycache__/
+*.pyc
+runtime/logs/
+runtime/profiles/
+runtime/bot.config
+runtime/treasureloot/
+runtime/Tools/platform-tools/
+dist/
