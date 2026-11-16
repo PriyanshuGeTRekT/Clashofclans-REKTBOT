@@ -1131,6 +1131,13 @@ class MainWindow(QMainWindow):
             adb._CACHED_TARGET = serial
             size = adb.check_screen_size()
             running = adb.is_app_running('com.supercell.clashofclans')
+            home = None
+            if running:                              # home screen recognised? (checks the update's UI)
+                try:
+                    from vision import Vision
+                    home = Vision().is_home_village()
+                except Exception:
+                    home = None
             installed = 'package:com.supercell.clashofclans' in adb.adb_target(
                 ['shell', 'pm', 'list', 'packages', 'com.supercell.clashofclans'])
             parts = [f'✓ Connected to {serial}.']
@@ -1144,6 +1151,10 @@ class MainWindow(QMainWindow):
                                                       f'✗ set {adb.EXPECTED_DPI} DPI (see README).'))
             parts.append('Clash of Clans: ' + ('✓ installed' + (' and running.' if running else '.')
                                                if installed else '✗ not installed (see README).'))
+            if home is not None:
+                parts.append('Home village: ' + ('✓ recognised.' if home else
+                                                 '✗ not recognised - go to your village (close any window) '
+                                                 'and test again; if it stays ✗, see README > Updates.'))
             return ' '.join(parts)
 
         def done(result):

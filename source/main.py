@@ -26,6 +26,7 @@ global active_config, active_profiles, last_profile_switch, current_profile_inde
 global loot_full_confirmed_profiles, pending_under_attack_check
 
 PACKAGE = 'com.supercell.clashofclans'
+MAX_STARTUP_RELAUNCHES = 3         # then stop with a clear message (e.g. the game needs an update)
 LAUNCH_GRACE_SECONDS = 90          # a just-launched game may sit on splash / loading screens this long
 GLOBAL_STATS = None
 GLOBAL_VISION = None
@@ -448,6 +449,7 @@ def main(stats):
             # Supercell screen (no 'app_loading' template) was showing, so a cold emulator start
             # could loop. Now a fresh launch gets LAUNCH_GRACE_SECONDS to reach the village.
             launched_at = 0.0
+            relaunches = 0
             while True:
                 if not adb.is_app_running(PACKAGE):
                     adb.launch_app(PACKAGE)
@@ -471,6 +473,22 @@ def main(stats):
                 if time.time() - launched_at < LAUNCH_GRACE_SECONDS:
                     time.sleep(3)
                     continue
+                relaunches += 1
+                if relaunches > MAX_STARTUP_RELAUNCHES:
+                    # Usually a forced game update (new Clash of Clans version on the Play Store) or a
+                    # screen the bot does not know: retrying forever would not help.
+                    print(f'[STARTUP] Clash of Clans did not reach the village after {MAX_STARTUP_RELAUNCHES} '
+                          'relaunches. If the game asks for an update, update it from the Play Store '
+                          'inside the emulator, then press Start again. Screen saved to logs/.')
+                    try:
+                        import cv2, os
+                        os.makedirs('logs', exist_ok=True)
+                        cv2.imwrite(os.path.join('logs', f"startup_stuck_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png"),
+                                    vision.grab())
+                    except Exception:
+                        pass
+                    BotControl.running = False
+                    raise control.BotStopped()
                 print('[STARTUP]Not on home village, relaunching app')
                 adb.force_stop(PACKAGE)
                 time.sleep(1)
@@ -595,7 +613,10 @@ def main(stats):
                         break
                     if pre_result:
                         continue
-                    if vision.match_template_region(fp.HOME_ATTACK_BUTTON_REGION, 'attack_button'):
+                    # UPDATE: the Battle button changed look in the Clash of Titans update; the
+                    # multi-marker home check (vision.HOME_MARKERS) also ends the wait.
+                    if (vision.match_template_region(fp.HOME_ATTACK_BUTTON_REGION, 'attack_button')
+                            or vision.is_home_village()):
                         break
                     time.sleep(1)
 

@@ -48,9 +48,41 @@ def dismiss_home_star_bonus(adb, vision, timeout=3.0):
             print('[HOME]Star bonus received, tapping Okay')
             click_point(adb, fp.HOME_STAR_BONUS_OKAY)
             time.sleep(1.0)
+            dismiss_home_popups(adb, vision)
             return True
         time.sleep(0.5)
-    return False
+    # UPDATE (Clash of Titans, 16 Nov 2026): the Star Bonus now pays out in milestones (Snack Packs at
+    # 2 and 5 stars, loot into the Clan Castle Treasury); close a window that leaves open with its X.
+    return dismiss_home_popups(adb, vision) is not None
+
+
+RETURN_HOME_REGION = (300, 560, 1300, 900)
+WINDOW_CLOSE_REGION = (900, 0, 1600, 320)
+
+
+def tap_return_home(adb, vision):
+    """Battle end screen: tap Return Home where it actually is (the update adds an emote picker to the
+    victory screen, which may move it), falling back to the classic position."""
+    pos = vision.match_template(vision.grab(), 'return_home', 0.8, region=RETURN_HOME_REGION)
+    click_point(adb, pos if pos else fp.BATTLE_RETURN_HOME_BUTTON)
+    return bool(pos)
+
+
+def dismiss_home_popups(adb, vision, rounds=3):
+    """Close windows over the home village with their red close X only. Returns 'close' or None.
+    A generic green Okay is deliberately NOT tapped: across 737 saved screens it matched confirmation
+    dialogs ("End battle?", "Remove challenge?"), and an Okay can confirm spending gems."""
+    tapped = None
+    for _ in range(rounds):
+        close = vision.match_template(vision.grab(), 'upgrade_window_close', 0.6, region=WINDOW_CLOSE_REGION)
+        if close:
+            print('[HOME]Window over the village, tapping its close X')
+            click_point(adb, close)
+            tapped = 'close'
+            time.sleep(1.0)
+            continue
+        break
+    return tapped
 
 
 def click_army_bar(adb, bars, slot_index):

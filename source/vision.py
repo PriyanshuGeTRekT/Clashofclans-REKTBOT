@@ -23,6 +23,13 @@ VISION_DEBUG = False
 ATTACK_DEBUG = False
 ARMY_DEBUG = False
 THZONE_DEBUG = False
+# Permanent home-village buttons (template, screen region). Any two of them identify the home village
+# when the Magic Items / Inventory button does not match (see is_home_village).
+HOME_MARKERS = (
+    ('attack_button', (10, 703, 197, 888)),       # Battle (bottom left)
+    ('build_button', (1400, 700, 1600, 900)),     # Build (bottom right)
+    ('shop_button_home', (1420, 360, 1600, 540)), # Shop (right edge; current coins + gem icon)
+)
 
 
 class Vision:
@@ -452,6 +459,19 @@ class Vision:
             return cx, cy
         return None
 
+    def _marker_lit(A, screen, key, region, min_ratio=0.8):
+        """True when the best match of `key` in `region` is about as bright as the template itself
+        (a darkened match means a window or menu is covering the village)."""
+        tpl = A.templates[key]['img']
+        tpl_gray = tpl if tpl.ndim == 2 else cv2.cvtColor(tpl, cv2.COLOR_BGR2GRAY)
+        x1, y1, x2, y2 = region
+        roi = cv2.cvtColor(screen[y1:y2, x1:x2], cv2.COLOR_BGR2GRAY)
+        if roi.shape[0] < tpl_gray.shape[0] or roi.shape[1] < tpl_gray.shape[1]:
+            return False
+        _mn, _mx, _ml, loc = cv2.minMaxLoc(cv2.matchTemplate(roi, tpl_gray, cv2.TM_CCOEFF_NORMED))
+        patch = roi[loc[1]:loc[1] + tpl_gray.shape[0], loc[0]:loc[0] + tpl_gray.shape[1]]
+        return float(patch.mean()) >= min_ratio * float(tpl_gray.mean())
+
     def is_home_village(A):
         screen = A.grab()
         h, w, _c = screen.shape
@@ -464,6 +484,18 @@ class Vision:
         if matched:
             if VISION_DEBUG:
                 print(f'[VISION] HOME VILLAGE DETECTED via {key} ✅')
+            return True
+        # UPDATE (Clash of Titans, 16 Nov 2026): the Magic Items button becomes the Inventory button and
+        # the Battle button gets "small UI changes". One changed icon must not hide the home village, so
+        # any two of the other permanent home buttons also count.
+        # A marker only counts at full brightness: an open window (upgrade, Battle menu...) darkens
+        # everything behind it, and template matching alone ignores brightness.
+        hits = [k for k, region in HOME_MARKERS
+                if k in A.templates and A.match_template(screen, k, 0.8, region=region)
+                and A._marker_lit(screen, k, region)]
+        if len(hits) >= 2:
+            if VISION_DEBUG:
+                print(f'[VISION] HOME VILLAGE DETECTED via {hits} ✅')
             return True
         if VISION_DEBUG:
             print('[VISION] NOT home village ❌')
@@ -601,7 +633,25 @@ class Vision:
                 B.debug_draw_th_grid(screen, best_pos)
             return best_pos
         print('[VISION]TH not detected')
+        B._save_unknown_th(screen)
         return None
+
+    def _save_unknown_th(A, screen):
+        """A Town Hall no template knows (TH19 from the Clash of Titans update, or a TH19 troop skin):
+        keep the scouting screen (at most one every 10 minutes) so a th19 template can be cut from it
+        (templates/townhall/th19*.png). The attack still runs, aimed at the base centre."""
+        now = time.time()
+        if now - getattr(A, '_last_unknown_th', 0) < 600:
+            return
+        A._last_unknown_th = now
+        try:
+            folder = os.path.join('logs', 'th_unknown')
+            os.makedirs(folder, exist_ok=True)
+            path = os.path.join(folder, f"th_unknown_{time.strftime('%Y-%m-%d_%H-%M-%S')}.png")
+            cv2.imwrite(path, screen)
+            print(f'[VISION] Unknown Town Hall (new TH19?) - screen saved to {path} for a template')
+        except Exception:
+            pass
 
     def get_townhall_pos(A, fallback=(791, 429)):
         pos = A.find_townhall()

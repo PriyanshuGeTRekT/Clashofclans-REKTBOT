@@ -35,7 +35,9 @@ CORE_SPELLS = ('spell_equake', 'spell_zap')
 # The rest of the army is used too (the replay never got to it before ending at 55%): the siege leads the
 # heroes in, Rage goes on the heroes' path, Freeze and Totem on the core once the heroes close in,
 # Revive over the heroes later, anything else on the core at the end.
-PATH_SPELLS = ('spell_rage', 'spell_haste', 'spell_heal', 'spell_jump', 'spell_invis')
+# Heroic Spell (Clash of Titans update): less damage taken, more speed, ground troops walk through walls
+# -> on the heroes' path like Rage (its speed boost does not stack with Rage/Haste; the fastest wins).
+PATH_SPELLS = ('spell_heroic', 'spell_rage', 'spell_haste', 'spell_heal', 'spell_jump', 'spell_invis')
 CORE_SUPPORT_SPELLS = ('spell_freeze', 'spell_totem', 'spell_iceblock', 'spell_poison')
 LATE_SPELLS = ('spell_revive', 'spell_recall', 'spell_overgrowth')
 REPLAY_ARMY = ('11 Electro Dragons; Archer Queen, Barbarian King, Grand Warden, Minion Prince (with pets); '
@@ -166,7 +168,8 @@ def run_attack(adb, vision, active_config=None):
         _log('no main troop found in the troop bar')
 
     # 1b) any other troops in the army (e.g. Dragon Riders) go round the same three sides
-    for extra in [k for k in tabs if k.startswith('troop_') and k != main]:
+    # (Squads from the Clash of Titans update deploy a whole group per tap: same path as the troops)
+    for extra in [k for k in tabs if (k.startswith('troop_') or k.startswith('squad_')) and k != main]:
         n = int(snapshot.get(extra, 0) or 0)
         if n <= 0:
             continue

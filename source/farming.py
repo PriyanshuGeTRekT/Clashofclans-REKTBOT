@@ -3,7 +3,8 @@
 # Nested helper names (R, s, F, t, Z) are the real (minified) co_names from the binary.
 import time
 from adb import tap, save_treasure_screenshot, swipe
-from actions import click_point, resolve_chest_reward_sequence, dismiss_home_star_bonus
+from actions import (click_point, resolve_chest_reward_sequence, dismiss_home_star_bonus,
+                     dismiss_home_popups, tap_return_home)
 import fixed_points as fp
 from walls import upgrade_walls
 import random  # imported but unused in this module
@@ -222,8 +223,9 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                 # FIX: a CoC window left open (army, picker, info panel) hides the home markers;
                 # try the standard top-right close X before falling back to a full CoC restart.
                 if now - home_wait_start > 6 and now >= home_close_next:
-                    print('[HOME]Not home yet, tapping window close')
-                    click_point(adb, fp.HOME_ARMY_TAB_CLOSE)
+                    if dismiss_home_popups(adb, vision) is None:     # Okay / red X first
+                        print('[HOME]Not home yet, tapping window close')
+                        click_point(adb, fp.HOME_ARMY_TAB_CLOSE)
                     home_close_next = now + 4.0
                 if now >= next_wait_log:
                     print('[HOME]Waiting for home village')
@@ -734,7 +736,7 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                 tap(*chest)
                 resolve_chest_reward_sequence(vision, tap, save_treasure_screenshot)
             else:
-                click_point(adb, fp.BATTLE_RETURN_HOME_BUTTON)
+                tap_return_home(adb, vision)
             time.sleep(3)
             dismiss_home_star_bonus(adb, vision)
             vision.cached_siege_tab = None

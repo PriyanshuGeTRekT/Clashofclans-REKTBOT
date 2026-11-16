@@ -125,7 +125,8 @@ def run(adb, vision, cfg, attack_modules, pause_if_needed=None):
         return 'RECOVERY'
     stars = vision.detect_battle_end_stars()
     _log(f'War attack finished: {stars} star(s)')
-    click_point(adb, fp.BATTLE_RETURN_HOME_BUTTON)
+    from actions import tap_return_home
+    tap_return_home(adb, vision)
     time.sleep(5)
     if vision.is_home_village():
         return 'attacked'

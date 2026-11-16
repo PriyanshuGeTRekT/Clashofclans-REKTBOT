@@ -217,6 +217,27 @@ Nothing to do. The first time the bot needs your village at the right size (for 
 
 ---
 
+## Game updates
+
+### Clash of Titans update (November 2026, Town Hall 19)
+Clash Rekt Bot has been prepared for this update from the official patch notes. It has **not yet been tested on a Town Hall 19 village**. Here is what changed and how the bot handles it:
+
+| Game change | What the bot does |
+|---|---|
+| **Magic Items** button became **Inventory**, and the **Battle** button looks slightly different | The bot no longer relies on one button to know it is in the village. It checks three: Battle, Build and Shop. Two of them are enough. Dimmed buttons behind an open window don't count. |
+| **Emotes** on the victory screen | The bot looks for **Return Home** on the screen before tapping it. If it can't find it, it taps the usual spot. |
+| **Star Bonus** reworked (Snack Packs at 2 and 5 stars, Clan Castle Treasury) and new pop-ups | Windows left open over the village are closed with their red **X**. The bot never taps an unknown **Okay**, so it can't confirm a purchase or an upgrade by accident. |
+| **Town Hall 19** (and Town Hall troop skins) | Attacks still work: if the Town Hall isn't recognised, the bot aims at the middle of the base. The screen is saved to `runtime/logs/th_unknown/` (at most one every 10 minutes) so a TH19 picture can be added. |
+| **Heroic Spell** and **Squads** | **50% Loot Maxxing** casts the Heroic Spell on the heroes' path and sends Squads with the other troops, once their pictures are in `runtime/templates/tabs/` (see the README in that folder). |
+| **Forced game update** | If Clash of Clans doesn't reach the village after 3 restarts, the bot stops and tells you to update the game from the Play Store. The screen is saved as `runtime/logs/startup_stuck_<time>.png`. |
+
+**After your game updates:**
+1. Update Clash of Clans in the emulator's Play Store.
+2. Open the game on your village and press **Emulator → Test connection**. It should show **Home village: ✓ recognised**.
+3. If it shows ✗, or the bot saves screens to `logs/th_unknown/` or `logs/startup_stuck_*.png`, those screens are what's needed to add the new pictures.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
