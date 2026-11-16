@@ -3,9 +3,8 @@
 # The bot finds buttons by comparing the screen with saved pictures (templates). When Supercell
 # redraws a button, its picture stops matching and the bot is stuck. Buttons with text on them can
 # be found again by READING the screen:
-#   1. Tesseract OCR looks for the button's words inside the area where the button lives.
-#   2. If OCR cannot read it and the Claude features are on, Claude is asked for the button's box.
-# The area around the words is saved as the new picture (the old one goes to
+# Tesseract OCR looks for the button's words inside the area where the button lives (no AI, nothing
+# leaves this computer). The area around the words is saved as the new picture (the old one goes to
 # logs/selfheal_backup/), so the next start works without any of this.
 import difflib
 import os
@@ -39,7 +38,7 @@ def can_heal(key):
     return key in LABELS
 
 
-def _ocr_words(image):
+def ocr_words(image):
     """[(lowercase word, x, y, w, h)] from Tesseract, on a 2x upscaled copy."""
     import cv2
     import pytesseract
@@ -55,12 +54,11 @@ def _ocr_words(image):
     return words
 
 
-def find_label(image, wanted):
-    """Bounding box (x1, y1, x2, y2) of all `wanted` words in `image`, or None."""
-    words = _ocr_words(image)
+def match_words(words, wanted, fuzzy=FUZZY):
+    """Bounding box (x1, y1, x2, y2) around all `wanted` words among OCR `words`, or None."""
     boxes = []
     for want in wanted:
-        best, best_score = None, FUZZY
+        best, best_score = None, fuzzy
         for text, x, y, w, h in words:
             score = difflib.SequenceMatcher(None, want, text).ratio()
             if score >= best_score:
@@ -72,25 +70,9 @@ def find_label(image, wanted):
             max(b[2] for b in boxes), max(b[3] for b in boxes))
 
 
-def _ask_claude(cfg, screen, wanted, region):
-    from smart import ai
-    x1, y1, x2, y2 = region
-    answer = ai.ask_json(
-        cfg,
-        f'This is a 1600x900 Clash of Clans screenshot. Find the button whose label reads '
-        f'"{" ".join(wanted)}" inside the area x {x1}-{x2}, y {y1}-{y2}. Give the pixel box around the '
-        f'label text only (not the whole button). Set found to false if it is not there.',
-        {'type': 'object', 'additionalProperties': False,
-         'required': ['found', 'x1', 'y1', 'x2', 'y2'],
-         'properties': {'found': {'type': 'boolean'}, 'x1': {'type': 'integer'}, 'y1': {'type': 'integer'},
-                        'x2': {'type': 'integer'}, 'y2': {'type': 'integer'}}},
-        image_bgr=screen)
-    if not answer or not answer.get('found'):
-        return None
-    box = (answer['x1'], answer['y1'], answer['x2'], answer['y2'])
-    if not (x1 - 40 <= box[0] < box[2] <= x2 + 40 and y1 - 40 <= box[1] < box[3] <= y2 + 40):
-        return None                                     # outside the expected area: do not trust it
-    return box
+def find_label(image, wanted):
+    """Bounding box (x1, y1, x2, y2) of all `wanted` words in `image`, or None."""
+    return match_words(ocr_words(image), wanted)
 
 
 def heal(cfg, vision, key, screen=None):
@@ -107,10 +89,6 @@ def heal(cfg, vision, key, screen=None):
     box = find_label(screen[y1:y2, x1:x2], wanted)
     if box:
         box = (box[0] + x1, box[1] + y1, box[2] + x1, box[3] + y1)
-        how = 'OCR'
-    elif (cfg or {}).get('SMART_VISION_FALLBACK'):
-        box = _ask_claude(cfg, screen, wanted, region)
-        how = 'Claude'
     if not box:
         _log(f'"{" ".join(wanted)}" was not found on screen, {key} left as it is')
         return False
@@ -131,6 +109,6 @@ def heal(cfg, vision, key, screen=None):
     if tpl is None:
         return False
     vision.templates[key] = tpl
-    _log(f'{key} re-learned from the screen by {how} at ({cx1},{cy1})-({cx2},{cy2}); old picture kept in '
+    _log(f'{key} re-learned from the screen at ({cx1},{cy1})-({cx2},{cy2}); old picture kept in '
          f'logs/selfheal_backup')
     return True

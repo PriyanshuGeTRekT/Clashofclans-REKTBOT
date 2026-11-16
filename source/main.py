@@ -306,6 +306,15 @@ def main(stats):
                 global pending_under_attack_check
                 if getattr(vision, '_error_popup_restarting', False):
                     return
+                # FIX: Reload on the popup often brings the game back by itself, and the bot had already
+                # moved on: this restart then killed the game in the middle of the next attack (seen
+                # with error_inactivity: popup dismissed, attack started, game force-stopped at 20%).
+                try:
+                    if vision.is_in_battle():
+                        print('[ERROR] Hard popup handled, the game recovered by itself (battle running)')
+                        return
+                except Exception:
+                    pass
                 vision._error_popup_restarting = True
                 try:
                     try:

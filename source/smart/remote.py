@@ -1,4 +1,4 @@
-# smart/remote.py - control the bot from your phone with a Telegram bot.
+# smart/remote.py - control the bot from your phone with a Telegram bot; messages to Discord.
 #
 # Setup (Smart page): create a bot with @BotFather, paste its token, send the bot any message, and
 # it replies with your chat id to paste into the app. Only that chat is obeyed.
@@ -9,6 +9,9 @@
 #   /backoff 20  "I'm playing" - leave the village alone for 20 minutes, then carry on
 #   /summary     results per strategy and Town Hall from the attack log
 # Optional: a message after every attack, and a summary once a day at a set hour.
+#
+# Discord: paste a channel webhook address (Channel settings > Integrations > Webhooks) to get the
+# attack messages there. A webhook can only receive messages, so the commands stay in Telegram.
 import threading
 import time
 
@@ -87,8 +90,8 @@ class TelegramRemote(threading.Thread):
             self.send(f'Leaving the village alone for {minutes:g} minute(s).' if minutes
                       else 'Back-off cancelled.')
         elif cmd == '/summary':
-            from smart import learn
-            self.send(service.status_text() + '\n\n' + learn.summary_text())
+            from smart import learn, ledger
+            self.send(service.status_text() + '\n\n' + learn.summary_text() + '\n\n' + ledger.summary_text())
         else:
             self.send(HELP)
 
@@ -140,7 +143,31 @@ def notify(text):
         threading.Thread(target=t.send, args=(text,), daemon=True).start()
 
 
+DISCORD_PREFIXES = ('https://discord.com/api/webhooks/', 'https://discordapp.com/api/webhooks/')
+
+
+def discord_send(cfg, text):
+    """Post `text` to the Discord webhook from the settings. True when Discord accepted it."""
+    url = str((cfg or {}).get('SMART_DISCORD_WEBHOOK', '') or '').strip()
+    if not url.startswith(DISCORD_PREFIXES):
+        if url:
+            _log('The Discord address is not a webhook address (https://discord.com/api/webhooks/...)')
+        return False
+    try:
+        r = requests.post(url, json={'content': text[:1900]}, timeout=15)
+        if r.status_code >= 300:
+            _log(f'Discord refused the message (HTTP {r.status_code})')
+            return False
+        return True
+    except Exception as e:
+        _log(f'could not reach Discord: {e}')
+        return False
+
+
 def notify_attack(cfg, entry):
+    text = (f"Attack done: {entry['stars']} star(s), {entry['gold']:,} gold, {entry['elixir']:,} elixir, "
+            f"{entry['dark']:,} dark ({entry.get('strategy') or '?'}).")
     if (cfg or {}).get('SMART_TELEGRAM_NOTIFY_ATTACKS'):
-        notify(f"Attack done: {entry['stars']} star(s), {entry['gold']:,} gold, {entry['elixir']:,} elixir, "
-               f"{entry['dark']:,} dark ({entry.get('strategy') or '?'}).")
+        notify(text)
+    if (cfg or {}).get('SMART_DISCORD_NOTIFY_ATTACKS'):
+        threading.Thread(target=discord_send, args=(cfg, text), daemon=True).start()

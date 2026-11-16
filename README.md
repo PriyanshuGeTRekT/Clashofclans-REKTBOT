@@ -35,6 +35,7 @@
 | **Farming attacks** | Searches for bases with the loot you want and attacks them with your chosen strategy: Electro Dragons, Dragons + Riders, Valkyrie Quake, Super Minions, Super Barbarians, BArch/Goblins, Thrower Smash or any MyBot/PHMOD-style CSV script. It uses the strategy that matches the army you actually trained. |
 | **Village chores** | Collects resources and the loot cart, claims free event rewards, removes obstacles, and runs building, hero, lab, pet, equipment and wall upgrades. It also handles the Helper Hut and keeps Super Troops boosted. |
 | **Builder Base** | Builder Base battles on a timer, or a **Builder Base only** mode, plus Builder Base upgrades. |
+| **Donation-only mode** | No attacks: the bot keeps the clan chat open and donates the moment a request appears (Clan & Events → Donations). |
 | **Clan & events** | Requests and donates troops, plays Clan Games, and handles Clan Capital raids. Ranked tournaments and Clan War attacks are both **off unless you turn them on**. |
 | **Plays like a person** | Set play hours, take random breaks and stop automatically after N attacks, hours or loot gained. |
 | **Many accounts** | Rotates between your Supercell ID accounts. Each account can have its own settings. |
@@ -163,7 +164,7 @@ The idea: **50% damage gives 1 star, and the star unlocks the attack's star bonu
 | **Emulator** | Pick your emulator, find it, test the connection, and the scenery zoom calibration. |
 | **Logs** | Everything the bot does, live, with filters and search. |
 | **Appearance & Help** | Colour scheme (Rekt Night, Rekt Day, **High Contrast**), text size and reduce motion. |
-| **Smart** | Optional extras: self-healing after game updates, spend-aware targeting, upgrade planner, Claude features, Telegram remote, session replay, web dashboard and multi-emulator farm. |
+| **Smart** | Optional extras: self-healing after game updates, spend-aware targeting, upgrade planner, plain-word goals, Telegram remote, Discord messages, session replay, web dashboard and multi-emulator farm. |
 
 Settings are locked while the bot runs. Stop it to change them.
 
@@ -220,24 +221,28 @@ Nothing to do. The first time the bot needs your village at the right size (for 
 
 ## Smart features (all optional)
 
-The **Smart** page adds extra brains. Every switch is **off** until you turn it on, and with all of them off the bot behaves exactly as before.
+The **Smart** page adds extra brains. Every switch is **off** until you turn it on, and with all of them off the bot behaves exactly as before. None of it uses AI or an online service, except the Telegram and Discord options, which talk to Telegram and Discord.
 
 | Feature | What it does |
 |---|---|
 | **Repair button pictures by itself** | When a game update redraws a button and the bot stops finding it, the bot reads the button's text from the screen (Tesseract), saves a new picture and carries on. Old pictures go to `runtime/logs/selfheal_backup/`. Covers buttons with text on them: Edit Army, Battle, Build, Shop, Return Home, End Battle, Surrender, Next, Okay. |
 | **Check the screens after a game update** | When the game's version number changes, the bot walks Battle menu → army screen → saved armies once without attacking and reports which pictures still match (`runtime/logs/canary_report_<version>.txt`). **Run update check** on the Smart page does it on demand. |
+| **Pick bases by loot per hour** | A Next costs seconds, an attack costs minutes. The bot remembers what bases offer in your league, times its own attacks and Nexts, learns the league bonus, and works out the break-even: the loot below which searching on earns more per hour than attacking. It watches 20 bases before it starts skipping, never skips more than a set number in a row, and counts a full storage's resource as nothing. **Economy and ledger report** on the Smart page shows the current rule. |
+| **Rest when every storage is full** | With gold, elixir and dark elixir all full, more attacks earn nothing: the game is closed for a while instead. (To spend the overflow instead, turn on **Upgrade walls** on the Village page.) |
+| **Check every attack's numbers** | After each attack the bot checks that loot won = loot offered + league bonus, and that the village counters moved by that much. A failed check is logged, the result screen and the "Available Loot" picture are saved to `runtime/logs/ledger/`, and loot lost to full storages is counted (`runtime/logs/ledger.jsonl`). |
 | **Do not farm what is already full** | Loot that does not fit in a full storage is lost. A full resource stops counting: with gold or elixir full a base must offer enough of the other one, and with both full only dark elixir counts. |
 | **Attack log / Skip bases this army keeps failing on** | Every attack is written to `runtime/logs/attacks.jsonl`. With the skip switch on, the bot checks the enemy Town Hall level before attacking and presses Next when the chosen strategy has averaged too few stars against it. |
 | **Upgrade planner** | Never-idle (look for a free builder or lab every 5 minutes instead of 30), upgrade order (list order, cheapest or priciest first) and no hero upgrades while a clan war countdown is showing. Works with the upgrade switches on the Village page. |
-| **Claude: ask when the bot is lost** | Before restarting the game on an unknown screen, the bot shows Claude the screenshot and takes up to 4 safe taps (close, continue, return home). Taps that could spend or buy are never made. |
-| **Claude: entry side for dragon attacks** | One call per attack: Claude looks at the enemy base and picks the side that is weakest against air. |
-| **Goals in plain words** | Type what you want ("save dark elixir for the Queen, stop after 3 hours"), press **Turn goal into settings**, and confirm the changes Claude proposes. |
+| **Try to get home before restarting** | On a screen the bot does not know, it tries up to 5 safe moves before restarting the game: tap Return Home / Continue / Reload / Close / Cancel when the screen shows one, tap a red X, or press Back. It never taps Okay, Confirm, Use or anything with a price. |
+| **Entry side: shortest real path** | Dragon strategies normally start from the outer edge whose middle is nearest the Town Hall. This measures from where troops can actually be dropped (the red line) and takes the edge with the shortest flight to the Town Hall. |
+| **Goals in plain words** | Type what you want ("at least 5k dark, stop after 3 hours, only play at night, don't upgrade walls"), press **Turn goal into settings**, and confirm the changes. Keyword rules understand stopping points, wanted loot, play hours and the on/off switches; parts they don't understand are listed back. |
 | **Phone remote (Telegram)** | `/status`, `/screenshot`, `/start`, `/pause`, `/resume`, `/stop`, `/backoff 20` (leave the village alone for 20 minutes), `/summary`, plus optional messages after each attack and a daily summary. Only your chat id is obeyed. |
+| **Discord messages** | Paste a channel webhook address to get the attack messages in Discord. A webhook only receives messages, so commands stay in Telegram. |
 | **Session replay** | A timeline of every attack and recovery with a thumbnail, the result and what the bot was doing: `runtime/logs/replay/<session>/index.html`. |
 | **Web dashboard / headless** | Status, the emulator screen, the log and Start / Pause / Stop as a web page (`http://127.0.0.1:8765/`). Opening it to your network needs a password. `runtime/run_bot.py --headless` runs the bot with no window. |
 | **Farm** | One extra bot per emulator instance (`name=port, name=port`), each with its own settings and logs in `runtime/instances/<name>/`. |
 
-The Claude features need an Anthropic API key (Smart → Claude), cost money per call and send screenshots of your game to the Anthropic API. The Telegram remote sends status and screenshots to Telegram. Nothing else leaves your computer.
+The Telegram remote sends status and screenshots to Telegram, and the Discord option sends attack results to your webhook. Nothing else leaves your computer.
 
 ---
 
@@ -282,7 +287,7 @@ All paths are inside the app's folder (see [First start](#3-first-start) for whe
 - **App preferences:** `runtime/bot.config` (theme, text size, window position).
 - **Logs and screenshots:** `runtime/logs/`. Each session's log is kept for 7 days.
 
-Nothing is sent anywhere unless you switch on a [Smart feature](#smart-features-all-optional) that says so (Claude, Telegram): by default the bot only talks to your emulator.
+Nothing is sent anywhere unless you switch on a [Smart feature](#smart-features-all-optional) that says so (Telegram, Discord): by default the bot only talks to your emulator.
 
 **Uninstall:**
 - **Windows:** **Settings → Apps → Clash Rekt Bot → Uninstall**. Your settings and logs stay in the install folder until you delete it.

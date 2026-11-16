@@ -47,7 +47,7 @@ def run_attack(adb, vision, active_config=None):
 
     # Pick the one of the 3 attack sides whose midpoint is nearest the Town Hall,
     # and the point on that edge nearest the TH (kept width/2 from the ends).
-    import smart
+    import smart                     # Smart page: entry side from the real deploy line (optional)
     side_idx = closest_side_index(smart.entry_point(active_config, v, th_pos), THREE_SIDES)
     side_line = THREE_SIDES[side_idx]
     center = closest_point_on_line_with_margin(th_pos, side_line, width / 2)

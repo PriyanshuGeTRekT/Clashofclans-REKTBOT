@@ -26,7 +26,11 @@ SLOT_THRESHOLD = 0.72
 INTERVAL_SECONDS = 300
 MAX_PASSES = 3
 
-_state = {'next_run': 0.0, 'saved_windows': 0}
+ONLY_SLICE_SECONDS = 600          # donation-only mode: hand back to the main loop this often
+ONLY_KEEPALIVE_SECONDS = 45       # ... and touch the chat this often so the game stays connected
+ONLY_RETRY_SECONDS = 20           # a request nothing could be given to is left alone this long
+
+_state = {'next_run': 0.0, 'saved_windows': 0, 'told_empty': False}
 
 
 def _log(msg):
@@ -132,3 +136,78 @@ def run(vision, cfg):
     tap(*CHAT_CLOSE)
     time.sleep(1.0)
     return done
+
+
+# ---------------------------------------------------------------------------------------------
+# Donation-only mode (DONATE_ONLY): no attacks. The clan chat stays open and the bot looks at it
+# every DONATE_ONLY_POLL_SECONDS; the moment a request shows its green Donate button, it donates.
+def chat_open(vision, screen=None):
+    screen = vision.grab() if screen is None else screen
+    return bool(vision.match_template(screen, 'chat_window', 0.8))
+
+
+def _open_chat(vision):
+    for _ in range(3):
+        if chat_open(vision):
+            return True
+        tap(*CHAT_BUTTON)
+        time.sleep(1.5)
+    return chat_open(vision)
+
+
+def run_only(adb, vision, cfg, stats=None, pause_if_needed=None):
+    """One slice of donation-only mode. Returns 'RECOVERY' when the game needs restarting, else None."""
+    from control import BotControl
+    wanted = _wanted(cfg)
+    if not wanted:
+        if not _state['told_empty']:
+            _state['told_empty'] = True
+            _log('Donation-only mode is on but "What to donate" is empty: nothing to give. '
+                 'Fill it in on the Clan & Events page (for example troop_dragon:1, spell_rage:1)')
+        time.sleep(5)
+        return None
+    poll = max(0.5, float(cfg.get('DONATE_ONLY_POLL_SECONDS', 2) or 2))
+    if not _open_chat(vision):
+        _log('The clan chat did not open')
+        return 'RECOVERY'
+    _log(f'Watching the clan chat for requests (every {poll:g} s)')
+    started = time.time()
+    keepalive = time.time() + ONLY_KEEPALIVE_SECONDS
+    skip_until = 0.0
+    total = 0
+    while BotControl.running and time.time() - started < ONLY_SLICE_SECONDS:
+        if callable(pause_if_needed):
+            pause_if_needed()
+        screen = vision.grab()
+        if not chat_open(vision, screen):
+            if vision.is_home_village():
+                if not _open_chat(vision):        # something closed the chat: open it again
+                    return 'RECOVERY'
+                continue
+            _log('The chat is gone and this is not the village: recovering')
+            return 'RECOVERY'
+        now = time.time()
+        buttons = find_donate_buttons(screen) if now >= skip_until else []
+        if buttons:
+            given = 0
+            for button in buttons:
+                given += _donate_into_window(vision, cfg, button)
+            if given:
+                total += given
+                if stats is not None:
+                    stats.troops_donated = getattr(stats, 'troops_donated', 0) + given
+                _log(f'Request answered: {given} troop(s) / spell(s) donated')
+            else:
+                # nothing of ours fits this request (wrong troops, already full): do not hammer it
+                skip_until = time.time() + ONLY_RETRY_SECONDS
+            keepalive = time.time() + ONLY_KEEPALIVE_SECONDS
+            continue
+        if now >= keepalive:
+            swipe(*CHAT_SCROLL_DOWN, duration=300)   # stay on the newest messages and stay connected
+            keepalive = now + ONLY_KEEPALIVE_SECONDS
+            time.sleep(0.5)
+            continue
+        time.sleep(poll)
+    if total:
+        _log(f'{total} donated in this stretch')
+    return None

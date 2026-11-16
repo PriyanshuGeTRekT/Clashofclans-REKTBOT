@@ -1099,8 +1099,9 @@ class MainWindow(QMainWindow):
         card = Card('Tools', 'Buttons for the features above.', 'settings', self.scheme)
         actions = [('Run update check', self._smart_canary), ('Turn goal into settings', self._smart_goal),
                    ('Open session replay', self._smart_replay), ('Open web dashboard', self._smart_web),
-                   ('Start the farm', self._smart_farm), ('Stop the farm', self._smart_farm_stop)]
-        for start in (0, 3):
+                   ('Start the farm', self._smart_farm), ('Stop the farm', self._smart_farm_stop),
+                   ('Economy and ledger report', self._smart_economy)]
+        for start in (0, 3, 6):
             line = QHBoxLayout()
             for text, fn in actions[start:start + 3]:
                 b = QPushButton('  ' + text)
@@ -1145,7 +1146,6 @@ class MainWindow(QMainWindow):
             return self._smart_say('Stop the bot first: settings are locked while it runs.')
         if not goal:
             return self._smart_say('Type your goal in "Goals in plain words" first.')
-        self._smart_say('Asking Claude...')
 
         def work():
             from smart import goals
@@ -1202,6 +1202,10 @@ class MainWindow(QMainWindow):
                               headless=bool(cfg.get('SMART_FARM_HEADLESS')))
         self._smart_say('Farm: ' + '; '.join(f'{n} on port {p}: {"started" if isinstance(r, int) else r}'
                                              for n, p, r in results))
+
+    def _smart_economy(self):
+        from smart import economy, ledger, spend
+        self.smart_result.setText(economy.report(self.store.load(), spend.full()) + '\n' + ledger.summary_text())
 
     def _smart_farm_stop(self):
         from smart import farm

@@ -322,11 +322,13 @@ def is_app_running(package_name):
 
 def is_app_in_foreground(package_name):
     """FIX: main.py's hard-popup restart called this, but it did not exist (AttributeError)."""
-    out = adb_target(['shell', 'dumpsys', 'window', 'windows'])
-    for line in out.splitlines():
-        if 'mCurrentFocus' in line or 'mFocusedApp' in line:
-            if package_name in line:
-                return True
+    # FIX: on Android 12+ `dumpsys window windows` no longer prints the focus lines, so this always
+    # answered False there (BlueStacks Air is Android 13). Ask plain `dumpsys window` as well.
+    for args in (['shell', 'dumpsys', 'window', 'windows'], ['shell', 'dumpsys', 'window']):
+        out = adb_target(args) or ''
+        focus = [line for line in out.splitlines() if 'mCurrentFocus' in line or 'mFocusedApp' in line]
+        if focus:
+            return any(package_name in line for line in focus)
     return False
 
 

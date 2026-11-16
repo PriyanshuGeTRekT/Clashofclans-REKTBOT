@@ -80,7 +80,10 @@ LOOT_BAR_ELIXIR_REGION = (1262, 92, 1525, 98)
 LOOT_BAR_DARK_REGION = (1345, 153, 1530, 159)
 ENEMY_GOLD_REGION = (79, 112, 228, 143)
 ENEMY_ELIXIR_REGION = (78, 159, 228, 190)
-ENEMY_DARK_REGION = (78, 207, 228, 237)
+# FIX: the bottom was 237, which cut 3-4 px off the dark elixir digits; a clipped "5" then matched
+# the "9" template (5 092 was read as 9092, 566 as 966). Found by smart/ledger.py: 3-star wins that
+# brought less dark elixir than the base "offered". Checked on saved screens: 242 and above read right.
+ENEMY_DARK_REGION = (78, 207, 228, 246)
 ENEMY_LOOT_ANCHOR_TOP_LEFT = (82, 85)
 ENEMY_LOOT_ANCHOR_SEARCH_REGION = (0, 40, 360, 200)
 ENEMY_LOOT_ANCHOR_THRESHOLD = 0.8

@@ -255,6 +255,14 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                 time.sleep(0.5)
             # FIX: is_home_village() also matches the Builder Base, and CoC reopens on the village that
             # was open last (e.g. a recovery relaunch right after a Builder Base visit). Sail home first.
+            if cfg.get('DONATE_ONLY', False):
+                # Donation-only mode: no attacks; keep the clan chat open and answer requests at once.
+                gate = scheduler.gate(stats, cfg, pause_if_needed)
+                if gate:
+                    return gate
+                if donate.run_only(adb, vision, cfg, stats, pause_if_needed) == 'RECOVERY':
+                    return 'RECOVERY'
+                continue
             if cfg.get('BB_ONLY', False):
                 # new (Pro): Builder Base only mode - no home village attacks, stay on the BB.
                 gate = scheduler.gate(stats, cfg, pause_if_needed)
@@ -276,7 +284,9 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
             gate = scheduler.gate(stats, cfg, pause_if_needed)   # new: active hours / breaks / end conditions
             if gate:
                 return gate
-            smart.on_home(cfg, vision, stats)     # Smart page: full storages, update check (all optional)
+            gate = smart.on_home(cfg, vision, stats, pause_if_needed)   # Smart page (all optional)
+            if gate:
+                return gate
             print('[ZOOM] Zooming out')
             # Village-object chores need the reference zoom (zoomnorm.py: ~6 s on sceneries that zoom
             # out further); a plain zoom-out is enough when none of them is due.

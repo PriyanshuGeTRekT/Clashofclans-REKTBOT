@@ -870,7 +870,24 @@ class Vision:
         return None
 
     def read_battle_end_loot(M, debug=False):
-        """Battle-end screen loot: sum of 'top' and 'bottom' rows per resource."""
+        """Battle-end loot, read once the result screen has stopped changing.
+
+        FIX: the bonus numbers appear one after another (gold, then elixir, then dark elixir). Reading
+        the screen once, the moment the battle ended, missed some or all of them on about every
+        third attack, so the loot totals were too low (found by smart/ledger.py: loot won did not
+        equal loot offered + bonus; the saved screen showed the full bonus). Read until two reads
+        0.6 s apart agree, at most 6 times."""
+        last = M._read_battle_end_loot_once(debug)
+        for _ in range(5):
+            time.sleep(0.6)
+            now = M._read_battle_end_loot_once(debug)
+            if now == last:
+                break
+            last = now
+        return last
+
+    def _read_battle_end_loot_once(M, debug=False):
+        """One read of the battle-end screen: sum of 'top' and 'bottom' rows per resource."""
         screen = M.grab()
         gold_top = crop(screen, fp.BATTLE_GOLD_TOP_REGION)
         elixir_top = crop(screen, fp.BATTLE_ELIXIR_TOP_REGION)
