@@ -548,6 +548,12 @@ def tap_raw(x, y):
     _input(['shell', 'input', 'tap', str(x), str(y)])
 
 
+def back():
+    """Android Back key: closes most Clash of Clans windows (on the bare village it opens the
+    'exit game?' question, which a second Back closes again)."""
+    _input(['shell', 'input', 'keyevent', '4'])
+
+
 def swipe(x1, y1, x2, y2, duration=300):
     _input(['shell', 'input', 'swipe', str(x1), str(y1), str(x2), str(y2), str(duration)])
 

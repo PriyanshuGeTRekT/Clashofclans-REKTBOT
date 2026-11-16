@@ -138,6 +138,87 @@ def _hero_spots(heroes, human=True):
     return spots
 
 
+# ------------------------------------------------------------------ cards without a picture
+# New troops, Squads and spells (every game update adds some) have no picture in templates/tabs yet, so
+# detect_tabs does not see them. Their cards still carry a white "xN" count in the top right corner:
+# every count that belongs to no recognised card is a card to use. Order in the bar is troops and
+# Squads, siege machine, heroes, spells, so a card right of a hero is a spell, the rest are troops.
+COUNT_LABEL_MIN_W, COUNT_LABEL_MAX_W = 16, 78
+UNKNOWN_CARD_MAX = 6
+
+
+def _count_label_runs(vision, frame, tab_y):
+    """(left, right) pixel columns of every white count label in the troop bar."""
+    import cv2
+    import numpy as np
+    import fixed_points as fp
+    small = getattr(vision, 'use_smallest_troop_bar_size', False)
+    y_off = fp.TROOP_COUNT_Y_OFFSET_SMALL if small else fp.TROOP_COUNT_Y_OFFSET
+    box_h = fp.TROOP_COUNT_BOX_HEIGHT_SMALL if small else fp.TROOP_COUNT_BOX_HEIGHT
+    y2 = int(tab_y - y_off)
+    y1 = max(0, y2 - box_h)
+    bx1, _by1, bx2, _by2 = fp.TROOP_BAR_REGION
+    band = frame[y1:y2 + 24, bx1:bx2]
+    if band.size == 0:
+        return []
+    mask = cv2.inRange(cv2.cvtColor(band, cv2.COLOR_BGR2HSV), np.array([0, 0, 200]), np.array([180, 60, 255]))
+    label_rows = y2 - y1
+    # a count label is short: white that carries on below it is something else (the "!" on an empty
+    # Clan Castle / siege card, the white frame round the selected card)
+    cols = ((mask[:label_rows] > 0).sum(axis=0) >= 3) & ((mask[label_rows + 4:] > 0).sum(axis=0) < 3)
+    runs, start, end, gap = [], None, 0, 0
+    for x, on in enumerate(list(cols) + [False] * 12):
+        if on:
+            if start is None:
+                start = x
+            end, gap = x, 0
+        elif start is not None:
+            gap += 1
+            if gap > 9:
+                runs.append((bx1 + start, bx1 + end))
+                start = None
+    return runs
+
+
+def find_unknown_cards(vision, tabs, frame):
+    """[(x, y, count, kind)] for troop-bar cards no template recognised; kind is 'troop' or 'spell'."""
+    known = []
+    for name, pos in tabs.items():
+        for p in getattr(vision, 'tab_matches', {}).get(name, [pos]):
+            known.append((name, int(p[0]), int(p[1])))
+    cards = [k for k in known if k[0].startswith(('troop_', 'spell_', 'event_', 'squad_'))]
+    if not cards:
+        return []
+    ys = sorted(k[2] for k in cards)
+    tab_y = ys[len(ys) // 2]
+    runs = [r for r in _count_label_runs(vision, frame, tab_y)
+            if COUNT_LABEL_MIN_W <= r[1] - r[0] <= COUNT_LABEL_MAX_W]
+    # where a label ends relative to its card's centre, learnt from the recognised cards
+    offsets = [r[1] - x for _n, x, _y in cards for r in runs if x + 5 <= (r[0] + r[1]) / 2 <= x + 85]
+    if not offsets:
+        return []
+    offsets.sort()
+    right_off = offsets[len(offsets) // 2]
+    heroes = [x for n, x, _y in known if n.startswith('hero_')]
+    spells = [x for n, x, _y in known if n.startswith('spell_')]
+    found = []
+    for _left, right in runs:
+        x = right - right_off
+        if any(abs(x - kx) < 58 for n, kx, _y in known if not n.startswith('siege_')):
+            continue
+        if any(abs(x - fx) < 58 for fx, _fy, _c, _k in found):
+            continue
+        count = vision.read_troop_count((x, tab_y), frame)
+        if not count or count <= 0 or count > 300:
+            continue
+        if heroes:
+            kind = 'spell' if x > max(heroes) else 'troop'
+        else:
+            kind = 'spell' if (spells and x > min(spells)) else 'troop'
+        found.append((int(x), int(tab_y), int(count), kind))
+    return found[:UNKNOWN_CARD_MAX]
+
+
 # ------------------------------------------------------------------ the attack
 def run_attack(adb, vision, active_config=None):
     cfg = active_config or {}
@@ -145,20 +226,28 @@ def run_attack(adb, vision, active_config=None):
     human = bool(cfg.get('LOOTMAX_HUMANIZE', True))
     print('=== LOOTMAX ATTACK START ===')
     tabs = vision.detect_tabs()
-    snapshot = read_battle_snapshot(vision, tabs, log_prefix='LOOTMAX')
+    snapshot = read_battle_snapshot(vision, tabs, prefixes=('troop_', 'event_', 'spell_', 'squad_'),
+                                    log_prefix='LOOTMAX')
     th = vision.get_townhall_pos()
+    try:
+        unknown = find_unknown_cards(vision, tabs, vision.grab()) if cfg.get('LOOTMAX_USE_UNKNOWN', True) else []
+    except Exception as e:                       # never let this extra stop the attack
+        _log(f'unknown-card check failed: {e.__class__.__name__}: {e}')
+        unknown = []
+    if unknown:
+        _log('cards without a picture: ' + ', '.join(f'{k} x{c} at x={x}' for x, _y, c, k in unknown))
 
     # 1) dragons: the whole stack, spread round three sides, ~90 ms apart
     main = next((t for t in MAIN_TROOPS if t in tabs), None)
     if main is None:
-        troops = [k for k in tabs if k.startswith('troop_')]
+        troops = [k for k in tabs if k.startswith(('troop_', 'event_', 'squad_'))]
         main = max(troops, key=lambda k: snapshot.get(k, 0), default=None)
     if main:
         count = int(snapshot.get(main, 0) or 0) or 11
         points = _sample_runs(_dragon_path(human), count, human)
         if human and random.random() < 0.5:
             points.reverse()                     # sweep right-to-left this time
-        _log(f'{count}x {main.replace("troop_", "")} round three sides')
+        _log(f'{count}x {main.split("_", 1)[1]} round three sides')
         tap(*tabs[main])
         _pause(0.12, 0.3, human)
         for p in points:                         # adb adds ~80 ms per tap: ~11 drops/s like the replay
@@ -168,14 +257,28 @@ def run_attack(adb, vision, active_config=None):
         _log('no main troop found in the troop bar')
 
     # 1b) any other troops in the army (e.g. Dragon Riders) go round the same three sides
-    # (Squads from the Clash of Titans update deploy a whole group per tap: same path as the troops)
-    for extra in [k for k in tabs if (k.startswith('troop_') or k.startswith('squad_')) and k != main]:
+    # (Squads from the Clash of Titans update deploy a whole group per tap: same path as the troops;
+    # event troops too)
+    for extra in [k for k in tabs if k.startswith(('troop_', 'squad_', 'event_')) and k != main]:
         n = int(snapshot.get(extra, 0) or 0)
         if n <= 0:
             continue
         _pause(0.2, 0.6, human)
-        _log(f'{n}x {extra.replace("troop_", "")} round three sides')
+        _log(f'{n}x {extra.split("_", 1)[1]} round three sides')
         tap(*tabs[extra])
+        _pause(0.1, 0.25, human)
+        for p in _sample_runs(_dragon_path(human), n, human):
+            tap_raw(*_wobble(p, 16, human))
+            _pause(0.03, 0.12, human)
+
+    # 1c) troop or Squad cards without a picture: same three sides
+    for x, y, n, kind in unknown:
+        if kind != 'troop':
+            continue
+        n = min(n, 40)
+        _pause(0.2, 0.6, human)
+        _log(f'{n}x unknown troop card (x={x}) round three sides')
+        tap(x, y)
         _pause(0.1, 0.25, human)
         for p in _sample_runs(_dragon_path(human), n, human):
             tap_raw(*_wobble(p, 16, human))
@@ -237,6 +340,21 @@ def run_attack(adb, vision, active_config=None):
         _pause(0.6, 1.5, human)
         for sp in path_spells:
             cast(sp, on_path(random.uniform(0.32, 0.48) if human else 0.4, 0.12), "on the heroes' path")
+
+    # 2c) spell cards without a picture (e.g. a new spell): on the heroes' path as well, where a boost,
+    # a heal or a damage spell all do some good
+    for x, y, n, kind in unknown:
+        if kind != 'spell':
+            continue
+        n = min(n, 11)
+        _pause(0.3, 0.9, human)
+        _log(f"{n}x unknown spell card (x={x}) on the heroes' path")
+        tap(x, y)
+        _pause(0.1, 0.25, human)
+        point = on_path(random.uniform(0.4, 0.6) if human else 0.5, 0.1)
+        for i in range(n):
+            tap_raw(*_wobble(point(i), 22, human))
+            _pause(0.08, 0.3, human)
 
     # 3) every Earthquake (or Lightning) on the Town Hall / core
     first_spell = True

@@ -471,6 +471,12 @@ def main(stats):
                 if vision.is_home_village():
                     break
                 if time.time() - launched_at < LAUNCH_GRACE_SECONDS:
+                    # UPDATE: a window or reward scene shown at login (Star Bonus reset, Snack Pack, news)
+                    # must not cost a relaunch: close it with its X / Continue once the game has settled.
+                    if time.time() - launched_at > 25:
+                        from actions import dismiss_home_popups, resolve_reward_scene
+                        if dismiss_home_popups(adb, vision) is None:
+                            resolve_reward_scene(adb, vision, allow_hits=time.time() - launched_at > 50)
                     time.sleep(3)
                     continue
                 relaunches += 1

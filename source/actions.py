@@ -85,6 +85,80 @@ def dismiss_home_popups(adb, vision, rounds=3):
     return tapped
 
 
+# UPDATE (Clash of Titans): a Star Bonus Snack Pack opens on a full-screen scene (kitchen table, no
+# village buttons): tap the pack a few times, the snack appears, then a green Continue button closes it.
+# It is the same Continue button as on the chest screen, so the chest template finds it.
+REWARD_CONTINUE_SCALES = [1.0, 0.97, 0.94, 0.9, 1.04, 1.08]
+REWARD_HIT_AREA = (730, 400, 870, 500)      # middle of the scene, above where dialogs keep their buttons
+
+
+REWARD_TEXT_REGION = (450, 540, 1150, 880)   # where a reward scene keeps its Continue button
+REWARD_TEXT_SCALES = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
+
+
+def find_continue_button(vision):
+    """Green Continue button: the whole button first, then just its lettering (any button width)."""
+    pos = None
+    if vision.templates.get('chest_continue'):
+        pos = vision.match_template_region_multiscale(fp.CHEST_CONTINUE_SEARCH_REGION, 'chest_continue', 0.8,
+                                                      scales=REWARD_CONTINUE_SCALES)
+    if not pos and vision.templates.get('card_continue'):
+        pos = vision.match_template_region_multiscale(REWARD_TEXT_REGION, 'card_continue', 0.8,
+                                                      scales=REWARD_TEXT_SCALES)
+    return pos
+
+
+def looks_like_snack_table(screen):
+    """The Snack Pack scene is a wooden kitchen table filling the screen: in the video of the update
+    87-91 % of the middle band is wood-coloured; no other saved game screen gets above 52 %."""
+    import cv2
+    h, w = screen.shape[:2]
+    band = cv2.cvtColor(screen[int(h * 0.50):int(h * 0.80), int(w * 0.10):int(w * 0.90)], cv2.COLOR_BGR2HSV)
+    wood = (band[..., 0] >= 6) & (band[..., 0] <= 24) & (band[..., 1] >= 90) & (band[..., 2] >= 70)
+    return float(wood.mean()) >= 0.68
+
+
+def village_buttons_hidden(vision, screen):
+    """True when no home-village button is on screen at all, lit or dimmed: a full-screen scene, not a
+    window over the village (a window leaves the dimmed buttons visible round it)."""
+    from vision import HOME_MARKERS
+    return not any(vision.match_template(screen, key, 0.7, region=region) for key, region in HOME_MARKERS)
+
+
+def resolve_reward_scene(adb, vision, allow_hits=False):
+    """Full-screen reward scene (Snack Pack, chest): tap Continue when it is there; with allow_hits,
+    tap the pack on the Snack Pack table a few times to open it first.
+    Returns 'continue', 'hit' or None (nothing done)."""
+    pos = find_continue_button(vision)
+    if pos:
+        print('[HOME]Reward screen, tapping Continue')
+        click_point(adb, pos)
+        time.sleep(1.5)
+        return 'continue'
+    if not allow_hits:
+        return None
+    screen = vision.grab()
+    if (not looks_like_snack_table(screen) or not village_buttons_hidden(vision, screen)
+            or vision.is_in_battle() or vision.is_battle_end()):
+        return None
+    print('[HOME]Snack Pack screen, tapping the pack to open it')
+    x1, y1, x2, y2 = REWARD_HIT_AREA
+    for _ in range(random.randint(4, 6)):
+        adb.tap(random.randint(x1, x2), random.randint(y1, y2))
+        time.sleep(random.uniform(0.25, 0.5))
+    deadline = time.time() + 6.0
+    while time.time() < deadline:
+        pos = find_continue_button(vision)
+        if pos:
+            print('[HOME]Reward opened, tapping Continue')
+            time.sleep(0.6)
+            click_point(adb, pos)
+            time.sleep(1.5)
+            return 'continue'
+        time.sleep(0.6)
+    return 'hit'
+
+
 def click_army_bar(adb, bars, slot_index):
     idx = slot_index
     if idx >= len(bars):
