@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to attach the installers to (e.g. v2.0.0)
+        description: Release tag to attach the installers to (e.g. v2.0.1)
         required: true
 
 permissions:

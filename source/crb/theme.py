@@ -9,7 +9,7 @@ from PySide6.QtGui import QFont, QFontDatabase, QColor, QPalette
 
 APP_NAME = 'Clash Rekt Bot'
 APP_SHORT = 'CRB'
-APP_VERSION = '2.0.0'
+APP_VERSION = '2.0.1'
 
 SCHEMES = {
     'night': {

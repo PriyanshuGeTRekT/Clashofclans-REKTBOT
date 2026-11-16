@@ -4,7 +4,7 @@
 
 #define AppName "Clash Rekt Bot"
 #ifndef AppVersion
-  #define AppVersion "2.0.0"
+  #define AppVersion "2.0.1"
 #endif
 #define Src "..\dist\ClashRektBot"
 
