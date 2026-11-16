@@ -441,8 +441,10 @@ def main(stats):
                         if held and still_there:
                             print('[ERROR] Wait is over, reconnecting to the village')
                             vision._error_popup_pending = held
-                        else:
+                        elif held:
                             print('[ERROR] Wait is over, the popup is gone - carrying on')
+                        else:
+                            print('[REMOTE] Back-off is over, carrying on')
                     elif (vision._error_popup_pending
                           and vision._error_popup_pending.get('popup_key') == 'error_device'):
                         wait_seconds = device_conflict_wait_seconds()

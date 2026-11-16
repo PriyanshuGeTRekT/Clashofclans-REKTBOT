@@ -627,6 +627,7 @@ class Vision:
                     best_name = name
         if best_pos:
             B.last_th_pos = best_pos
+            B.last_th_name = best_name
             print(f'[ATTACK] TH accepted: {best_name}')
             if THZONE_DEBUG:
                 print(f'[ATTACK DEBUG] TH accepted: {best_name} {best_pos} score={best_score:.3f}')

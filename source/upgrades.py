@@ -17,6 +17,7 @@ import cv2
 import numpy as np
 
 from adb import swipe, tap
+from smart import planner
 
 BUILD_BUTTON = (1495, 800)
 MENU_CLOSE = (1572, 28)
@@ -247,6 +248,10 @@ def _try_card(vision, screen, card, kind, dry_run, free_before=None):
         tap(*SAFE_TAP)
         time.sleep(0.6)
         return False
+    import smart
+    if planner.block_hero_upgrade(smart.config(), vision, window):   # Smart page: no hero upgrades in a war
+        _close_window(vision)
+        return False
     confirm = _green_confirm(vision, window)
     if not confirm:
         _state['skip_rows'].add(sig)    # crafting station, max level, ... : skip this session
@@ -280,7 +285,7 @@ def _try_card(vision, screen, card, kind, dry_run, free_before=None):
 
 def run_tab(vision, cfg, kind, free=None, dry_run=False):
     """Start up to `free` upgrades from one tab. Returns how many were started."""
-    _state['next_run'][kind] = time.time() + INTERVAL_SECONDS
+    _state['next_run'][kind] = time.time() + planner.interval(cfg, INTERVAL_SECONDS)
     if not open_menu(vision):
         _log('Build menu did not open')
         return 0
@@ -297,7 +302,7 @@ def run_tab(vision, cfg, kind, free=None, dry_run=False):
     tried_y = set()            # rows already opened in this run (some rows animate, e.g. crafting)
     scrolled = 0
     for _scroll in range(MAX_SCROLLS + 4):
-        for card in find_cards(screen):
+        for card in planner.order_cards(cfg, screen, find_cards(screen)):
             key_y = (scrolled, card[0] // 20)
             if (not card_affordable(screen, card) or key_y in tried_y
                     or _signature(screen, card) in _state['skip_rows']):
@@ -351,6 +356,7 @@ def run_bb(vision, cfg, dry_run=False):
 def run(vision, cfg, dry_run=False):
     """Run every enabled tab. Builders use the home-screen free-builder counter."""
     total = 0
+    planner.note_home_screen(cfg, vision)
     if due(cfg, 'builders'):
         free = vision.read_builders_free()
         reserve = int(cfg.get('AUTO_UPGRADE_KEEP_BUILDERS', 0) or 0)
@@ -358,7 +364,7 @@ def run(vision, cfg, dry_run=False):
         if free:
             total += run_tab(vision, cfg, 'builders', free, dry_run)
         else:
-            _state['next_run']['builders'] = time.time() + INTERVAL_SECONDS
+            _state['next_run']['builders'] = time.time() + planner.interval(cfg, INTERVAL_SECONDS)
     for kind in ('lab', 'pets', 'equipment'):
         if due(cfg, kind):
             total += run_tab(vision, cfg, kind, None if kind != 'equipment' else 1, dry_run)

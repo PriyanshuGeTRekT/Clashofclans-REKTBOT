@@ -113,6 +113,11 @@ class BotWorker(QThread):
             sys.stdout = TeeStream(out, fh)
             sys.stderr = TeeStream(err, fh)
             print(f'[LOG] Session log started: {A.log_path}')
+            try:
+                from smart import events
+                events.start_session()
+            except Exception:
+                pass
             A._run_main_with_device_recovery()
             print('[LOG] Session log ended')
         except control.BotStopped:

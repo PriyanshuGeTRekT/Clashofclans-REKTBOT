@@ -30,12 +30,14 @@ from pathlib import Path
 RUNTIME = Path(__file__).resolve().parent
 SOURCE = RUNTIME.parent / "source"
 
-os.environ["APP_LAUNCH_DIR"] = str(RUNTIME)
+# A farm instance (source/smart/farm.py) keeps its settings and logs in its own folder.
+DATA = Path(os.environ.get("CRB_INSTANCE_DIR") or RUNTIME)
+os.environ["APP_LAUNCH_DIR"] = str(DATA)
 os.environ.setdefault("UIAUTOMATOR2_DATA", str(RUNTIME / "Tools" / "uiautomator2_data"))
 sys.path[:0] = [str(SOURCE), str(SOURCE / "ui")]
-os.chdir(RUNTIME)
+os.chdir(DATA)
 
-LOGS = RUNTIME / "logs"
+LOGS = DATA / "logs"
 STAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 DIAG_PATH = LOGS / f"diagnostics-{STAMP}.log"
 _diag_lock = threading.Lock()
@@ -102,7 +104,15 @@ def main():
     parser.add_argument("--autostart", action="store_true")
     parser.add_argument("--auto-restart", type=int, default=0)
     parser.add_argument("--classic", action="store_true", help="open the old ACBot window instead")
+    parser.add_argument("--headless", action="store_true",
+                        help="no window: control the bot from the web dashboard (Smart page)")
+    parser.add_argument("--web-port", type=int, default=0, help="web dashboard port for --headless")
     opts = parser.parse_args()
+    if opts.headless:
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+        os.environ["CRB_HEADLESS"] = "1"
+    if opts.web_port:
+        os.environ["CRB_WEB_PORT"] = str(opts.web_port)
     sys.argv = sys.argv[:1]  # keep Qt from seeing our flags
     _open_diagnostics()
 

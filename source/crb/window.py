@@ -27,6 +27,11 @@ from crb.widgets import (Card, Choice, Segmented, SettingRow, StatTile, StatusPi
 
 LOGO_PATH = os.path.join(os.path.dirname(__file__), 'assets', 'logo.svg')
 
+class _SmartBridge(QObject):
+    """Carries start/stop/pause requests from the remote-control threads to the GUI thread."""
+    action = Signal(str)
+
+
 NAV = [
     ('dashboard', 'Dashboard', 'dashboard'),
     ('attack', 'Attack', 'attack'),
@@ -38,8 +43,9 @@ NAV = [
     ('emulator', 'Emulator', 'emulator'),
     ('logs', 'Logs', 'logs'),
     ('appearance', 'Appearance & Help', 'settings'),
+    ('smart', 'Smart', 'star'),
 ]
-SETTING_PAGES = {'attack', 'village', 'builder', 'clan', 'schedule', 'accounts', 'emulator'}
+SETTING_PAGES = {'attack', 'village', 'builder', 'clan', 'schedule', 'accounts', 'emulator', 'smart'}
 _TAG = re.compile(r'^\s*\[([A-Z0-9_ ]+)\]\s?')
 
 
@@ -115,6 +121,7 @@ class MainWindow(QMainWindow):
         self.apply_theme()
         self.store.apply_emulator()
         self.reload_values()
+        self._smart_init()
         self.go(self.prefs.get('last_page', 'dashboard') if self.prefs.get('last_page') in dict(
             (k, 1) for k, _t, _i in NAV) else 'dashboard')
 
@@ -213,7 +220,7 @@ class MainWindow(QMainWindow):
             b.setObjectName('Nav')
             b.setCheckable(True)
             b.setCursor(Qt.PointingHandCursor)
-            b.setToolTip(f'{label}  (Ctrl+{(i + 1) % 10})')
+            b.setToolTip(f'{label}  (Ctrl+{(i + 1) % 10})' if i < 10 else label)
             b.setAccessibleName(f'{label} page')
             b.clicked.connect(lambda _c=False, k=key: self.go(k))
             b._icon_name = icon_name
@@ -348,6 +355,8 @@ class MainWindow(QMainWindow):
                     self.strategy_info.setAccessibleName('Army suggestion for the selected strategy')
                     card.add(self.strategy_info)
             lay.addWidget(card)
+        if page_key == 'smart':
+            lay.addWidget(self._smart_tools())
         lay.addStretch(1)
         return self._scroll(page), sub
 
@@ -642,7 +651,7 @@ class MainWindow(QMainWindow):
         self.store.save_ui_prefs(reduce_motion=bool(on))
 
     def _shortcuts(self):
-        for i, (key, _l, _i) in enumerate(NAV):
+        for i, (key, _l, _i) in enumerate(NAV[:10]):        # Ctrl+1..Ctrl+0: the first ten pages
             QShortcut(QKeySequence(f'Ctrl+{(i + 1) % 10}'), self, activated=lambda k=key: self.go(k))
         QShortcut(QKeySequence('F5'), self, activated=self.start_bot)
         QShortcut(QKeySequence('F6'), self, activated=self.toggle_pause)
@@ -707,6 +716,8 @@ class MainWindow(QMainWindow):
                 row.control.blockSignals(False)
         cfg = self.store.load()
         self._refresh_dependencies(cfg)
+        if key.startswith(('SMART_TELEGRAM_', 'SMART_WEB_')):
+            self._smart_services(cfg, key)
         if key == 'SELECTED_ATTACK_STRATEGY':
             self._refresh_strategy_info(cfg)
         if key == 'MULTI_VILLAGE_ENABLED' and not value:
@@ -1050,6 +1061,152 @@ class MainWindow(QMainWindow):
             self._changed('EMULATOR_PORT', value)
         elif value:
             self.emu_result.setText('The port must be a number, e.g. 5555.')
+
+    # ---------------------------------------------------------------- Smart page (source/smart/)
+    def _smart_init(self):
+        """Give the remote controls (Telegram, web page) the same powers as the buttons."""
+        from smart import service
+        self._smart_bridge = _SmartBridge(self)
+        self._smart_bridge.action.connect(self._smart_action)      # runs on the GUI thread
+        ctl = service.controller
+        for name in ('start', 'stop', 'pause', 'resume'):
+            setattr(ctl, name, lambda n=name: self._smart_bridge.action.emit(n))
+        ctl.get_cfg = self.store.load
+        ctl.is_running = self.worker.isRunning
+        self._smart_services(self.store.load(), None)
+
+    def _smart_services(self, cfg, key):
+        from smart import remote, webdash
+        try:
+            if key is None or key.startswith('SMART_TELEGRAM_'):
+                remote.restart(cfg)
+            if key is None or key.startswith('SMART_WEB_'):
+                webdash.restart(cfg, force=bool(os.environ.get('CRB_HEADLESS')))
+        except Exception as exc:
+            print(f'[SMART] Could not start a remote control: {exc}')
+
+    def _smart_action(self, name):
+        if name == 'start':
+            self.start_bot()
+        elif name == 'stop':
+            self.stop_bot()
+        elif name == 'pause' and self.worker.isRunning() and not control.BotControl.paused:
+            self.toggle_pause()
+        elif name == 'resume' and self.worker.isRunning() and control.BotControl.paused:
+            self.toggle_pause()
+
+    def _smart_tools(self):
+        card = Card('Tools', 'Buttons for the features above.', 'settings', self.scheme)
+        actions = [('Run update check', self._smart_canary), ('Turn goal into settings', self._smart_goal),
+                   ('Open session replay', self._smart_replay), ('Open web dashboard', self._smart_web),
+                   ('Start the farm', self._smart_farm), ('Stop the farm', self._smart_farm_stop)]
+        for start in (0, 3):
+            line = QHBoxLayout()
+            for text, fn in actions[start:start + 3]:
+                b = QPushButton('  ' + text)
+                b.clicked.connect(fn)
+                line.addWidget(b)
+            line.addStretch(1)
+            card.body.addLayout(line)
+        self.smart_result = QLabel('')
+        self.smart_result.setObjectName('Help')
+        self.smart_result.setWordWrap(True)
+        self.smart_result.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        card.add(self.smart_result)
+        return card
+
+    def _smart_say(self, text):
+        self.smart_result.setText(str(text))
+        print(f'[SMART] {text}')
+
+    def _smart_canary(self):
+        if self.worker.isRunning():
+            return self._smart_say('Stop the bot first: the update check uses the game by itself.')
+        self._smart_say('Checking the screens... (about 15 seconds, do not touch the emulator)')
+        self.store.apply_emulator()
+        cfg = self.store.load()
+
+        def work():
+            import adb
+            import startup
+            from vision import Vision
+            from smart import canary
+            startup.start_adb()
+            adb.connect_emulator()
+            adb.ensure_ready(30)
+            report, _failed = canary.run(cfg, Vision())
+            return report
+        self._run_in_thread(work, lambda r: self.smart_result.setText(str(r)))
+
+    def _smart_goal(self):
+        cfg = self.store.load()
+        goal = str(cfg.get('SMART_GOAL', '') or '').strip()
+        if self.worker.isRunning():
+            return self._smart_say('Stop the bot first: settings are locked while it runs.')
+        if not goal:
+            return self._smart_say('Type your goal in "Goals in plain words" first.')
+        self._smart_say('Asking Claude...')
+
+        def work():
+            from smart import goals
+            return goals.plan(cfg, goal)
+
+        def done(result):
+            if isinstance(result, Exception):
+                return self._smart_say(f'That failed: {result}')
+            summary, changes = result
+            if changes is None:
+                return self._smart_say(summary)
+            if not changes:
+                return self._smart_say(summary or 'No settings need to change for that goal.')
+            lines = [f'- {schema.title(k)}: {v}   ({why})' for k, v, why in changes]
+            box = QMessageBox(self)
+            box.setWindowTitle('Apply these settings?')
+            box.setText(summary)
+            box.setInformativeText('\n'.join(lines))
+            box.setStandardButtons(QMessageBox.Apply | QMessageBox.Cancel)
+            if box.exec() != QMessageBox.Apply:
+                return self._smart_say('Nothing was changed.')
+            for k, v, _why in changes:
+                self.store.set(k, v)
+            self.reload_values()
+            self._smart_say(f'{len(changes)} setting(s) changed: ' + ', '.join(schema.title(k) for k, _v, _w in changes))
+        self._run_in_thread(work, done)
+
+    def _smart_replay(self):
+        from smart import events
+        page = events.latest_html()
+        if not page:
+            return self._smart_say('No replay yet: switch on "Record a session replay" and run the bot.')
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(page)))
+        self._smart_say(f'Opened {page}')
+
+    def _smart_web(self):
+        from smart import webdash
+        cfg = self.store.load()
+        if not cfg.get('SMART_WEB_ENABLED'):
+            return self._smart_say('Switch on "Web dashboard" first.')
+        address = webdash.restart(cfg)
+        if not address:
+            return self._smart_say('The web page could not start; see the Logs page.')
+        QDesktopServices.openUrl(QUrl(address))
+        self._smart_say(f'Dashboard: {address}')
+
+    def _smart_farm(self):
+        from smart import farm
+        cfg = self.store.load()
+        spec = farm.parse(cfg.get('SMART_FARM_INSTANCES', ''))
+        if not spec:
+            return self._smart_say('List the extra emulators first, for example: second=5565, third=5575')
+        results = farm.launch(cfg.get('SMART_FARM_INSTANCES', ''), base_cfg=cfg,
+                              headless=bool(cfg.get('SMART_FARM_HEADLESS')))
+        self._smart_say('Farm: ' + '; '.join(f'{n} on port {p}: {"started" if isinstance(r, int) else r}'
+                                             for n, p, r in results))
+
+    def _smart_farm_stop(self):
+        from smart import farm
+        farm.stop_all()
+        self._smart_say('Extra bots stopped.')
 
     def _run_in_thread(self, fn, done):
         """Run fn() off the GUI thread; done(result) runs on the GUI thread."""

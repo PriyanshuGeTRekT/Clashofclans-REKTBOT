@@ -34,6 +34,9 @@ def run(adb, vision, pause_if_needed):
         pause()
         time.sleep(8)
         return
+    import smart
+    if smart.on_lost(smart.config(), vision, adb_):     # Smart page: vision-model fallback (optional)
+        return
     adb_.force_stop(PACKAGE)
     pause()
     time.sleep(2)

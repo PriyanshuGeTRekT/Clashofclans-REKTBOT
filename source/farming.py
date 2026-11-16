@@ -25,6 +25,7 @@ import rewards
 import obstacles
 import supertroop
 import helperhut
+import smart
 
 from attack import scripted as attack_scripted
 from attack import lootmax as attack_lootmax
@@ -275,6 +276,7 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
             gate = scheduler.gate(stats, cfg, pause_if_needed)   # new: active hours / breaks / end conditions
             if gate:
                 return gate
+            smart.on_home(cfg, vision, stats)     # Smart page: full storages, update check (all optional)
             print('[ZOOM] Zooming out')
             # Village-object chores need the reference zoom (zoomnorm.py: ~6 s on sceneries that zoom
             # out further); a plain zoom-out is enough when none of them is due.
@@ -416,6 +418,8 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                     break
                 time.sleep(0.2)
             if not btn:
+                if smart.heal(cfg, vision, 'army_button'):    # Smart page: re-learn a redrawn button
+                    continue
                 print('[ARMY]Edit Army button not found, triggering recovery')
                 return 'RECOVERY'
             print('[ARMY]Opening army menu')
@@ -578,7 +582,14 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                     state = ATTACKING
                     time.sleep(1.5)
                     continue
-                if cfg.get('XP_FARMING', False):
+                if smart.on_search_loot(cfg, vision, gold, elixir, dark,
+                                        'lootmax' if cfg.get('LOOTMAX_ENABLED', False)
+                                        else str(cfg.get('SELECTED_ATTACK_STRATEGY', '')).strip()) == 'skip':
+                    # Smart page: full storages / a base this army fails on -> Next, like "Loot bad"
+                    R()
+                    skip_count += 1
+                    click_point(adb, fp.BATTLE_NEXT_BUTTON)
+                elif cfg.get('XP_FARMING', False):
                     # new (Pro): XP farming - attack every base regardless of loot (experience
                     # comes from destroyed buildings, not loot; pair with END_BATTLE_* to keep
                     # attacks short).
@@ -729,6 +740,7 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
             # new: per-battle result line, so strategies can be compared from the session log
             print(f"[BATTLE] Result: {stars} star(s), loot {gold}/{elixir}/{dark} "
                   f"({strategy or '?'})")
+            smart.on_battle_end(cfg, vision, stats, strategy, stars, gold, elixir, dark)
             chest = None
             if vision.templates.get('claim_reward'):
                 chest = vision.match_template(vision.grab(), 'claim_reward', 0.85)
