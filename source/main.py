@@ -91,6 +91,20 @@ def pause_if_needed():
         if callable(process_events):
             process_events()
         time.sleep(0.2)
+    # 'Another device is connecting' hold: wait here until the popup handler reconnects (or Stop).
+    while control.BotControl.hold_until and control.BotControl.running:
+        if callable(process_events):
+            process_events()
+        time.sleep(0.5)
+
+
+def device_conflict_wait_seconds():
+    """How long to leave the village to the other device before reconnecting (setting, minutes)."""
+    try:
+        minutes = float(active_config.get('DEVICE_CONFLICT_WAIT_MINUTES', 2))
+    except (TypeError, ValueError):
+        minutes = 2.0
+    return max(0.0, minutes) * 60.0
 
 
 def _warn_missing_error_templates(vision):
@@ -252,6 +266,7 @@ def main(stats):
     pending_under_attack_check = True
     BotControl.running = True
     BotControl.paused = False
+    BotControl.hold_until = 0.0
     _set_runtime_recovery_state(profile='__global__', mode='startup')
     print('[STARTUP]Launching bot + Starting ADB server')
     emulator = get_selected_emulator()
@@ -347,6 +362,18 @@ def main(stats):
                         vision._error_popup_watcher.submit_frame(full_frame)
                 return frame
 
+            def _device_popup_on_screen():
+                """True when a fresh screenshot still shows 'Another device is connecting'."""
+                try:
+                    fresh = vision._error_popup_original_grab()
+                    if fresh is None:
+                        return True
+                    x1, y1, x2, y2 = fp.ERROR_POPUP_CHECK_REGION
+                    return bool(vision.match_template(fresh[y1:y2, x1:x2], 'error_device',
+                                                      vision._error_popup_popup_threshold))
+                except Exception:
+                    return True                              # cannot tell: keep the old behaviour
+
             def _process_error_popup_events(force=False):
                 now = time.time()
                 lock = getattr(vision, '_error_popup_lock', None)
@@ -355,7 +382,9 @@ def main(stats):
                 if not lock.acquire(blocking=False):
                     return None
                 try:
-                    if not force and now - vision._error_popup_last_tick < vision._error_popup_tick_interval_seconds:
+                    # During an 'another device' hold the countdown is checked every second.
+                    tick_interval = 1.0 if BotControl.hold_until else vision._error_popup_tick_interval_seconds
+                    if not force and now - vision._error_popup_last_tick < tick_interval:
                         return None
                     vision._error_popup_last_tick = now
                     if now - vision._error_popup_last_health_check >= vision._error_popup_health_interval_seconds:
@@ -369,7 +398,7 @@ def main(stats):
                         vision._error_popup_pending = detection
                         vision._error_popup_last_subprocess_result_at = now
                     subprocess_stale = now - vision._error_popup_last_subprocess_result_at > 1.5
-                    if (not vision._error_popup_pending and subprocess_stale
+                    if (not vision._error_popup_pending and subprocess_stale and not BotControl.hold_until
                             and now - vision._error_popup_last_local_check >= 0.4):
                         vision._error_popup_last_local_check = now
                         full_frame = getattr(vision, '_error_popup_latest_full_frame', None)
@@ -398,6 +427,37 @@ def main(stats):
                                     }
                                     print(f'[ERROR] Local fallback detected popup: {popup_key}')
                                     break
+                    # NEW: 'Another device is connecting to this Village'. Someone is playing on another
+                    # device, so leave them the village for DEVICE_CONFLICT_WAIT_MINUTES, then reconnect.
+                    if BotControl.hold_until:
+                        if now < BotControl.hold_until:
+                            vision._error_popup_pending = None      # nothing is tapped while holding
+                            return None
+                        BotControl.hold_until = 0.0
+                        held = getattr(vision, '_device_conflict_pending', None)
+                        vision._device_conflict_pending = None
+                        vision._error_popup_pending = None
+                        still_there = _device_popup_on_screen()     # the user may have tapped RELOAD already
+                        if held and still_there:
+                            print('[ERROR] Wait is over, reconnecting to the village')
+                            vision._error_popup_pending = held
+                        else:
+                            print('[ERROR] Wait is over, the popup is gone - carrying on')
+                    elif (vision._error_popup_pending
+                          and vision._error_popup_pending.get('popup_key') == 'error_device'):
+                        wait_seconds = device_conflict_wait_seconds()
+                        if not _device_popup_on_screen():
+                            # A detection can be up to a minute old (see the tick interval): the popup
+                            # was already dealt with, so there is nothing to wait for or to tap.
+                            vision._error_popup_pending = None
+                            return None
+                        if wait_seconds > 0:
+                            vision._device_conflict_pending = vision._error_popup_pending
+                            vision._error_popup_pending = None
+                            BotControl.hold_until = now + wait_seconds
+                            print(f'[ERROR] Another device is connecting to this village. '
+                                  f'Reconnecting in {wait_seconds / 60:g} minute(s)')
+                            return None
                     if now < vision._error_popup_action_until:
                         return None
                     if vision._error_popup_action_hard:

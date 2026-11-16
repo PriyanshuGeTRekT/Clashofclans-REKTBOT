@@ -349,6 +349,10 @@ SETTINGS = [
     _s('SCHED_BREAK_LENGTH_MAX', '... to', 'int', 15, P, 'Pro: Schedule',
        'Upper bound (minutes) of a break.', depends_on='SCHED_BREAKS_ENABLED',
        min=1, max=240, step=1, widget="pro_widgets['SCHED_BREAK_LENGTH_MAX']", saved_by='update_pro_features'),
+    _s('DEVICE_CONFLICT_WAIT_MINUTES', 'Wait before reconnecting (minutes)', 'int', 2, P, 'Schedule: Another device',
+       'When the game says "Another device is connecting to this Village" (you opened it on your phone), '
+       'the bot waits this many minutes and then reconnects by itself. 0 reconnects at once.',
+       min=0, max=240, step=1),
     # End Conditions
     _s('END_CONDITIONS_ENABLED', 'Stop the bot when one of these targets is reached', 'bool', False, P, 'Pro: End Conditions (0 = off)',
        'Stops the bot (END_CONDITION) as soon as any non-zero target below is reached.',

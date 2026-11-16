@@ -25,3 +25,5 @@ HERO_TAP_DELAY_SECONDS = 1
 AIR_TROOP_WIDTH_ENABLED = False
 AIR_TROOP_WIDTH = 300
 TEMPLATES_DIR = 'templates'
+# Minutes to wait before reconnecting after 'Another device is connecting to this Village' (0 = at once)
+DEVICE_CONFLICT_WAIT_MINUTES = 2

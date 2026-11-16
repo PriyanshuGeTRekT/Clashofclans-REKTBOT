@@ -16,6 +16,8 @@ class BotControl:
     enter_pressed = False
     continue_event = threading.Event()
     worker = None  # set to the Qt BotWorker by ui.bot_worker
+    # 'Another device is connecting' hold: the bot does nothing until this time (0 = no hold).
+    hold_until = 0.0
 
     @classmethod
     def emit_config(A, cfg, profile=None):
