@@ -20,6 +20,7 @@ Options:
 import argparse
 import datetime
 import faulthandler
+import json
 import os
 import sys
 import threading
@@ -42,6 +43,40 @@ STAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 DIAG_PATH = LOGS / f"diagnostics-{STAMP}.log"
 _diag_lock = threading.Lock()
 _diag = None  # opened in main(); multiprocessing children re-import this file and must not log
+
+
+def _finish_update_first():
+    """Before the app imports anything of its own: finish an update that was cut off (power cut,
+    killed updater) or undo one that did not start (source/updates/engine.py)."""
+    if os.environ.get("CRB_INSTANCE_DIR"):
+        return                                     # extra bots of a farm: the main app handles updates
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("crb_update_engine", SOURCE / "updates" / "engine.py")
+        engine = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(engine)
+        verdict = engine.startup_hook(RUNTIME.parent)
+    except Exception:                              # never let this keep the app from opening
+        return
+    if verdict == "exit":                          # an updater is busy: it opens the app itself
+        sys.exit(0)
+    if verdict == "restart":                       # the app's files changed under this process
+        os.environ[engine.LAUNCH_ENV] = engine.read_version(RUNTIME.parent)
+        argv = [sys.executable, str(Path(__file__).resolve())] + sys.argv[1:]
+        if os.name == "nt":
+            import subprocess
+            subprocess.Popen(argv, cwd=str(RUNTIME.parent), close_fds=True, creationflags=0x00000208)
+            sys.exit(0)
+        os.execv(sys.executable, argv)
+
+
+def _report_started():
+    """The window is up: an update that is waiting for this start knows it worked."""
+    try:
+        from updates import client
+        client.report_started()
+    except Exception as exc:
+        diag("UPDATE", f"could not report the start: {exc}")
 
 
 def _open_diagnostics():
@@ -107,6 +142,7 @@ def main():
     parser.add_argument("--headless", action="store_true",
                         help="no window: control the bot from the web dashboard (Smart page)")
     parser.add_argument("--web-port", type=int, default=0, help="web dashboard port for --headless")
+    os.environ["CRB_LAUNCH_ARGS"] = json.dumps(sys.argv[1:])   # an update reopens the app the same way
     opts = parser.parse_args()
     if opts.headless:
         os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -141,6 +177,7 @@ def main():
 
     def init(self, *a, **kw):
         original_init(self, *a, **kw)
+        QTimer.singleShot(1500, _report_started)
         original_stop = self.stop_bot
 
         def stop_bot(*sa, **skw):
@@ -207,6 +244,7 @@ def _run_crb(opts):
 
     def hook(win):
         win.worker.status.connect(lambda s: diag("STATUS", s))
+        QTimer.singleShot(1500, _report_started)
 
         def on_finished():
             diag("BOT", "worker thread finished")
@@ -232,4 +270,5 @@ def _run_crb(opts):
 
 
 if __name__ == "__main__":
+    _finish_update_first()
     main()

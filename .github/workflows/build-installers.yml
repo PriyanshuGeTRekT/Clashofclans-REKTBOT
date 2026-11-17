@@ -1,26 +1,73 @@
-name: Build installers (macOS + Linux)
+name: Build installers and the update package
 
-# Builds the macOS .dmg and the Linux .deb / .tar.gz, tests each one by really installing it, running
-# the first-start setup and opening the app off-screen, then attaches them to the given release.
-# (The Windows installer is built with Inno Setup from installer/ClashRektBot.iss.)
+# Runs by itself when a release is published (or by hand for an existing tag). Builds:
+#   * the in-app update package + latest.json - every running copy (2.1.0 and later) sees the new
+#     version within a few hours and can install it from inside the app (source/updates);
+#   * the macOS .dmg and the Linux .deb / .tar.gz, each tested by really installing it, running the
+#     first-start setup and opening the app off-screen.
+# and attaches them to the release. (The Windows installer is built with Inno Setup from
+# installer/ClashRektBot.iss; Windows copies update themselves from the update package.)
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to attach the installers to (e.g. v2.0.1)
+        description: Release tag to attach the files to (e.g. v2.1.0)
         required: true
 
 permissions:
   contents: write
 
 jobs:
-  macos:
-    runs-on: macos-latest
+  update:
+    runs-on: ubuntu-latest
     env:
-      TAG: ${{ inputs.tag }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+      - name: The tag must match the VERSION file
+        run: |
+          set -e
+          V="$(tr -d '[:space:]' < VERSION)"
+          if [ "v$V" != "$TAG" ]; then echo "::error::VERSION says $V but the release tag is $TAG"; exit 1; fi
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+      - name: Build the update package
+        run: |
+          set -e
+          gh release view "$TAG" --json body --jq .body > notes.md
+          python3 tools/build_update.py . dist --notes notes.md --repo "$GITHUB_REPOSITORY"
+          python3 source/updates/engine.py verify "dist/ClashRektBot-${VERSION}-update.zip"
+      - name: Test - install it over the previous files with the update engine
+        run: |
+          set -e
+          mkdir -p old && git archive HEAD | tar -x -C old && echo 0.0.1 > old/VERSION
+          python3 tools/build_update.py --manifest-only old
+          mkdir new && (cd new && unzip -q "../dist/ClashRektBot-${VERSION}-update.zip")
+          python3 source/updates/engine.py install-dir --source new --root old
+          test "$(cat old/VERSION)" = "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: update
+          path: dist/
+      - name: Attach to the release (latest.json last, so the app never sees it before the package)
+        run: |
+          set -e
+          gh release upload "$TAG" "dist/ClashRektBot-${VERSION}-update.zip" "dist/ClashRektBot-${VERSION}-update.zip.sha256" --clobber
+          gh release upload "$TAG" dist/latest.json --clobber
+
+  macos:
+    runs-on: macos-latest
+    env:
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
       - name: Version
         run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
       - name: Build Clash Rekt Bot.app
@@ -61,10 +108,12 @@ jobs:
   linux:
     runs-on: ubuntu-22.04
     env:
-      TAG: ${{ inputs.tag }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
       - name: Version
         run: echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
       - name: Qt runtime libraries (for the off-screen check)

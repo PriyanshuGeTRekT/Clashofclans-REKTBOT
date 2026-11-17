@@ -10,6 +10,7 @@ linux -> <out>/deb/...              (dpkg-deb --build turns it into the .deb)
 Both carry the app as a read-only payload; launcher/user_install.sh copies it into the user's folder
 on first start (settings, logs and the downloaded Python live there) and starts it.
 """
+import importlib.util
 import os
 import shutil
 import stat
@@ -36,6 +37,11 @@ def _payload(tree, dest, version):
         return skip
     shutil.copytree(tree, dest, ignore=ignore)
     (dest / 'VERSION').write_text(version + '\n', encoding='utf-8')
+    # the list of shipped files: lets updates tell them apart from files the user changed
+    spec = importlib.util.spec_from_file_location('crb_update_engine', dest / 'source' / 'updates' / 'engine.py')
+    engine = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(engine)
+    engine.save_json(dest / engine.MANIFEST, engine.build_manifest(dest, version, engine.collect_files(dest, use_git=False)))
 
 
 def _exe(path, text):
@@ -76,8 +82,10 @@ TARGET="$HOME/Library/Application Support/{APP}"
 if [ "$1" = "--no-launch" ]; then          # set up only (used by the build checks)
   exec bash "$PAYLOAD/launcher/user_install.sh" "$PAYLOAD" "$TARGET" --no-launch
 fi
-if [ ! -x "$TARGET/.crb/venv/bin/python" ] || [ "$(cat "$TARGET/VERSION" 2>/dev/null)" != "$(cat "$PAYLOAD/VERSION")" ]; then
-  # first start or an update: show the one-time setup in Terminal
+# Set up again only for a first start or a different .app: the app also updates itself in TARGET,
+# and this (older) bundle must not undo that (see launcher/user_install.sh).
+if [ ! -x "$TARGET/.crb/venv/bin/python" ] || [ "$(cat "$TARGET/.crb/payload_version" 2>/dev/null)" != "$(cat "$PAYLOAD/VERSION")" ]; then
+  # first start or a new .app: show the one-time setup in Terminal
   SETUP="$TMPDIR/clash-rekt-bot-setup.command"
   printf '#!/bin/bash\\nbash "%s/launcher/user_install.sh" "%s" "%s"\\n' "$PAYLOAD" "$PAYLOAD" "$TARGET" > "$SETUP"
   chmod +x "$SETUP"

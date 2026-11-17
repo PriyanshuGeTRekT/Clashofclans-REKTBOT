@@ -68,7 +68,7 @@ Where the app keeps its files (settings, logs and the downloaded Python):
 - **macOS:** `~/Library/Application Support/Clash Rekt Bot`.
 - **Linux:** `~/.local/share/clash-rekt-bot`.
 
-Updating keeps your settings.
+Updating keeps your settings. From 2.1.0 on the app updates itself: see [Updating Clash Rekt Bot](#updating-clash-rekt-bot).
 
 ### 4. Connect and play
 1. Open your emulator.
@@ -246,6 +246,38 @@ The Telegram remote sends status and screenshots to Telegram, and the Discord op
 
 ---
 
+## Updating Clash Rekt Bot
+
+From version **2.1.0** on, the app updates itself. (2.0.1 and older can't: install 2.1.0 once with the installer, and every later version arrives by itself.)
+
+1. When the app starts, and every 6 hours, it looks at the [Releases page](https://github.com/PriyanshuGeTRekT/Clashofclans-REKTBOT/releases/latest) for a newer version.
+2. If there is one, a window shows what's new, with **Update now**, **Later** and **Skip this version**. An **Update to …** button also appears under the version number in the sidebar.
+3. **Update now** downloads the update (about 14 MB), checks it, closes the app, installs it and opens the app again, usually in under a minute. If the bot was running, it is stopped first and started again afterwards.
+
+What an update keeps:
+- **Your data:** settings, accounts, logs and your own attack scripts.
+- **Re-learned pictures:** button pictures the bot re-learned by itself, unless the update brings a new picture for that button.
+
+If something goes wrong:
+- **The new version doesn't start:** the previous one is put back and opened by itself, and that version isn't offered again automatically.
+- **A failed or damaged download:** nothing is changed.
+- **You don't like the new version:** **Appearance & Help → Updates → Go back to …** undoes the last update.
+
+Settings, in **Appearance & Help → Updates**:
+- **Look for new versions:** turn the checks off.
+- **Install updates by themselves:** download and install without asking, after a 20-second notice and never while the bot is running.
+- **Check now:** look right away.
+
+The check only downloads the release information from GitHub; nothing about you or your computer is sent. Developer copies made with `git clone` are not updated by the app: use `git pull`.
+
+### Shipping an update (maintainers)
+
+1. Put the new version number in `VERSION` (for example `2.1.1`), commit and push.
+2. Publish a GitHub release with the tag `v2.1.1` and the release notes, for example `gh release create v2.1.1 --title "Clash Rekt Bot 2.1.1" --notes "Fixed …"`.
+3. The **Build installers and the update package** workflow runs by itself. It builds the update package, `latest.json` and the macOS/Linux installers and attaches them to the release. Within a few hours every running copy shows the update window.
+
+The Windows installer is still built by hand with Inno Setup (`installer/ClashRektBot.iss`, which reads `VERSION`). Run `python tools\build_update.py --manifest-only dist\ClashRektBot` before compiling it. Windows copies don't need it to update: they use the same update package as everyone else.
+
 ## Game updates
 
 ### Clash of Titans update (November 2026, Town Hall 19)
@@ -286,8 +318,9 @@ All paths are inside the app's folder (see [First start](#3-first-start) for whe
 - **Settings:** `runtime/profiles/` (main settings, plus one folder per account).
 - **App preferences:** `runtime/bot.config` (theme, text size, window position).
 - **Logs and screenshots:** `runtime/logs/`. Each session's log is kept for 7 days.
+- **Updates:** `.crb/updates/` (the previous version for **Go back**, and `updater.log`).
 
-Nothing is sent anywhere unless you switch on a [Smart feature](#smart-features-all-optional) that says so (Telegram, Discord): by default the bot only talks to your emulator.
+Nothing is sent anywhere unless you switch on a [Smart feature](#smart-features-all-optional) that says so (Telegram, Discord): by default the bot only talks to your emulator, plus the update check, which downloads release information from GitHub (turn it off in Appearance & Help → Updates).
 
 **Uninstall:**
 - **Windows:** **Settings → Apps → Clash Rekt Bot → Uninstall**. Your settings and logs stay in the install folder until you delete it.

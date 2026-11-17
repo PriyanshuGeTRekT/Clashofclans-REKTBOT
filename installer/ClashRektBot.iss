@@ -3,8 +3,14 @@
 ; Per-user install (no admin rights): the app writes its settings and logs inside its own folder.
 
 #define AppName "Clash Rekt Bot"
+; The version comes from the VERSION file (the in-app updater reads the same file). Before compiling,
+; run  python tools\build_update.py --manifest-only dist\ClashRektBot  so the installed copy has
+; app_manifest.json: updates use it to keep the files the user changed.
 #ifndef AppVersion
-  #define AppVersion "2.0.1"
+  #define VersionFile FileOpen(AddBackslash(SourcePath) + "..\VERSION")
+  #define AppVersion Trim(FileRead(VersionFile))
+  #expr FileClose(VersionFile)
+  #undef VersionFile
 #endif
 #define Src "..\dist\ClashRektBot"
 
@@ -66,3 +72,9 @@ Filename: "{cmd}"; Parameters: "/c rmdir /s /q ""\\?\{app}\.crb"""; Flags: runhi
 Type: filesandordirs; Name: "{app}\.crb"
 Type: filesandordirs; Name: "{app}\runtime\Tools\platform-tools"
 Type: filesandordirs; Name: "{app}\source"
+; files the in-app updater added or replaced after installation
+Type: filesandordirs; Name: "{app}\launcher"
+Type: filesandordirs; Name: "{app}\runtime\templates"
+Type: filesandordirs; Name: "{app}\runtime\assets"
+Type: files; Name: "{app}\app_manifest.json"
+Type: files; Name: "{app}\VERSION"

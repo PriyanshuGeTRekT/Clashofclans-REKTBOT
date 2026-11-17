@@ -58,7 +58,12 @@ def cleanup_children():
                 return (p.name() or '').lower() in keep
             except Exception:
                 return False
-        kids = [c for c in psutil.Process(os.getpid()).children(recursive=True) if not is_emulator(c)]
+        try:
+            from updates.client import KEEP_PIDS          # the updater waits for this app to close
+        except Exception:
+            KEEP_PIDS = set()
+        kids = [c for c in psutil.Process(os.getpid()).children(recursive=True)
+                if not is_emulator(c) and c.pid not in KEEP_PIDS]
         for c in kids:
             try:
                 c.terminate()

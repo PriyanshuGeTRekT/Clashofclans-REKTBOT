@@ -8,3 +8,4 @@ runtime/treasureloot/
 runtime/Tools/platform-tools/
 dist/
 runtime/instances/
+/app_manifest.json

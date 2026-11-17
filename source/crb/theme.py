@@ -9,7 +9,21 @@ from PySide6.QtGui import QFont, QFontDatabase, QColor, QPalette
 
 APP_NAME = 'Clash Rekt Bot'
 APP_SHORT = 'CRB'
-APP_VERSION = '2.0.1'
+
+
+def _read_version():
+    """The app's version: the VERSION file next to source/ (updates replace it)."""
+    from pathlib import Path
+    try:
+        text = (Path(__file__).resolve().parents[2] / 'VERSION').read_text(encoding='utf-8').strip()
+        if text:
+            return text
+    except OSError:
+        pass
+    return '0.0.0'
+
+
+APP_VERSION = _read_version()
 
 SCHEMES = {
     'night': {
@@ -140,6 +154,8 @@ QPushButton#Primary:disabled {{ background: {c['surface3']}; color: {c['faint']}
 QPushButton#Big {{ font-size: {pt(14)}; font-weight: 800; padding: 14px 18px; border-radius: 14px; }}
 QPushButton#Danger {{ color: {c['danger']}; border-color: {c['danger']}; }}
 QPushButton#Ghost {{ background: transparent; border: 1px solid transparent; }}
+QPushButton#UpdateBadge {{ background: transparent; color: {c['gold']}; border: 1px solid {c['gold']}; border-radius: 12px; padding: 3px 10px; font-weight: 700; }}
+QPushButton#UpdateBadge:hover {{ background: {c['surface2']}; }}
 QPushButton#Ghost:hover {{ background: {c['surface2']}; }}
 
 QPushButton#Nav {{

@@ -117,11 +117,15 @@ class MainWindow(QMainWindow):
         self.worker.prompt_continue.connect(self._on_prompt_continue)
         self.worker.finished.connect(lambda: self._on_status('Stopped'))
 
+        from crb.updates_ui import UpdateController
+        self.updates = UpdateController(self)     # before _build: the Updates card lives on a page
+        self.updating = False
         self._build()
         self.apply_theme()
         self.store.apply_emulator()
         self.reload_values()
         self._smart_init()
+        self.updates.start()
         self.go(self.prefs.get('last_page', 'dashboard') if self.prefs.get('last_page') in dict(
             (k, 1) for k, _t, _i in NAV) else 'dashboard')
 
@@ -212,6 +216,12 @@ class MainWindow(QMainWindow):
         ver = QLabel(f'v{theme.APP_VERSION}')
         ver.setObjectName('Dim')
         lay.addWidget(ver)
+        self.update_badge = QPushButton('')       # shown while a new version is waiting (updates_ui.py)
+        self.update_badge.setObjectName('UpdateBadge')
+        self.update_badge.setCursor(Qt.PointingHandCursor)
+        self.update_badge.setAccessibleName('A new version of Clash Rekt Bot is available')
+        self.update_badge.setVisible(False)
+        lay.addWidget(self.update_badge, 0, Qt.AlignLeft)
         lay.addSpacing(10)
 
         self.nav_buttons = {}
@@ -579,6 +589,8 @@ class MainWindow(QMainWindow):
             keys.add(l)
         lay.addWidget(keys)
 
+        lay.addWidget(self.updates.build_card(self.scheme))
+
         about = Card(theme.APP_NAME, f'Version {theme.APP_VERSION}. Setup guides and troubleshooting are in the '
                      'README next to this app.', 'info', self.scheme)
         ab = QHBoxLayout()
@@ -832,6 +844,7 @@ class MainWindow(QMainWindow):
             # FIX (Q23): the old UI never unlocked when the bot stopped by itself
             if not self.worker.isRunning():
                 self._set_running(False)
+                self.updates.bot_stopped()
         c = theme.colors(self.scheme)
         self.btn_pause.setIcon(icons.icon('play' if self.paused else 'pause', c['text'], 16))
 
