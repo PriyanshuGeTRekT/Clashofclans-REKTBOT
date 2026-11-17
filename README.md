@@ -7,11 +7,11 @@
 <p align="center"><b>Clash Rekt Bot</b> farms, upgrades and plays Clash of Clans for you on any Android emulator, on Windows, macOS and Linux. One click to start, no setup knowledge needed.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.1-FF3B5C?style=for-the-badge" alt="version 2.0.1">
+  <img src="https://img.shields.io/badge/version-2.1.0-FF3B5C?style=for-the-badge" alt="version 2.1.0">
   <img src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-1B2142?style=for-the-badge" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/python-3.12-FFB938?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/tested%20on-MEmu%209.5.8.0-22D39A?style=for-the-badge" alt="tested on MEmu 9.5.8.0">
-  <img src="https://img.shields.io/badge/Clash%20of%20Clans-18.647.5-4CC2FF?style=for-the-badge" alt="Clash of Clans 18.647.5">
+  <img src="https://img.shields.io/badge/Clash%20of%20Clans-19.32.4-4CC2FF?style=for-the-badge" alt="Clash of Clans 19.32.4">
 </p>
 <p align="center">
   <img src="https://img.shields.io/github/stars/PriyanshuGeTRekT/Clashofclans-REKTBOT?style=for-the-badge&logo=github&color=FFB938" alt="GitHub stars">
@@ -40,6 +40,8 @@
 | **Plays like a person** | Set play hours, take random breaks and stop automatically after N attacks, hours or loot gained. |
 | **Many accounts** | Rotates between your Supercell ID accounts. Each account can have its own settings. |
 | **Any scenery** | Some sceneries zoom out much further than others. The bot measures your village and zooms to the right level by itself, once per scenery. |
+| **Smart extras** | Optional and off by default, no AI needed: loot-per-hour base picking, a check that every attack's loot adds up, skipping bases when storages are full, self-repairing button pictures after game updates, a Telegram remote, Discord messages, a web dashboard and more. [More below.](#smart-features-all-optional) |
+| **Updates itself** | A new version shows up as a popup with its release notes; **Update now** installs it and reopens the app, and goes back by itself if the new version doesn't start. [More below.](#updating-clash-rekt-bot) |
 | **Keeps going** | Reconnects when the emulator drops, restarts a frozen emulator, recovers from the game hanging, and stops cleanly the moment you press Stop. |
 
 Everything that **spends resources** is **off** until you turn it on.
@@ -54,11 +56,13 @@ Get the installer for your system from the **[Releases page](https://github.com/
 
 | System | Download | Install |
 |---|---|---|
-| **Windows** 10/11 | `ClashRektBot-Setup-2.0.1.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
-| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.0.1-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
-| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.0.1_all.deb` | `sudo apt install ./clash-rekt-bot_2.0.1_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
-| **Linux** (any distro) | `ClashRektBot-2.0.1-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
-| **No installer** (any system) | `ClashRektBot-2.0.1.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
+| **Windows** 10/11 | `ClashRektBot-Setup-2.1.0.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
+| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.0-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
+| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.0_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.0_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
+| **Linux** (any distro) | `ClashRektBot-2.1.0-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
+| **No installer** (any system) | `ClashRektBot-2.1.0.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
+
+The Windows installer (`.exe`) is built separately and may appear on a release a little later than the other files; the `.zip` works on Windows right away.
 
 ### 3. First start
 The first start takes a few minutes. A window shows the progress while it downloads its own copy of **Python 3.12**, the libraries it needs and Google's **adb**. Nothing else on your system is changed and no admin rights are needed. After that, every start takes a couple of seconds.
@@ -87,6 +91,7 @@ Everything in this README was built and tested on exactly this setup. Matching i
 | **Emulator** | **MEmu 9.5.8.0** (Microvirt), Android **9** (64-bit, x86_64) |
 | **Emulator screen** | **1600 x 900**, **300 DPI**, ADB port **21503** |
 | **Clash of Clans** | **18.647.5** |
+| **Also tested (2.1.0)** | macOS 27 on Apple Silicon (M2 Pro) with **BlueStacks Air 5.21** (1600 x 900, 300 DPI, ADB 5555) and Clash of Clans **19.32.4** |
 | **Computer** | Windows 11 Pro (build 26300) |
 | **Python** | 3.12 (installed by the launcher; you don't need your own) |
 

@@ -56,7 +56,9 @@ jobs:
       - name: Attach to the release (latest.json last, so the app never sees it before the package)
         run: |
           set -e
-          gh release upload "$TAG" "dist/ClashRektBot-${VERSION}-update.zip" "dist/ClashRektBot-${VERSION}-update.zip.sha256" --clobber
+          # the update package is also the "no installer" download: unzip and run a Start script
+          cp "dist/ClashRektBot-${VERSION}-update.zip" "dist/ClashRektBot-${VERSION}.zip"
+          gh release upload "$TAG" "dist/ClashRektBot-${VERSION}-update.zip" "dist/ClashRektBot-${VERSION}-update.zip.sha256" "dist/ClashRektBot-${VERSION}.zip" --clobber
           gh release upload "$TAG" dist/latest.json --clobber
 
   macos:
