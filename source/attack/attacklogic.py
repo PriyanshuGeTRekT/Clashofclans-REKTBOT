@@ -373,6 +373,7 @@ def dump_remaining_spells_on_th(vision, tabs, th_pos, spell_counts=None):
 def dump_remaining_troops(tabs, vision, side_line, center, troop_counts=None, exclude_names=None, width=280):
     counts = troop_counts
     excluded = set(exclude_names or [])
+    dumped = []
     for name, tab_pos in tabs.items():
         if not name.startswith('troop_'):
             continue
@@ -394,7 +395,10 @@ def dump_remaining_troops(tabs, vision, side_line, center, troop_counts=None, ex
         deploy_troop(tab_pos, points[:n])
         if counts is not None and name in counts:
             counts[name] = max(0, int(counts.get(name, 0)) - n)
+        dumped.append(name)
         wait(0.3)
+    if dumped:                                          # whatever the game refused: try again
+        redeploy_missing(vision, tabs, dumped, side_line, center, width, counts)
 
 
 def quake_targets(hero_pos, th_pos):
@@ -474,3 +478,136 @@ def deploy_event_troops_air(tabs, vision, side_line, snapshot_counts=None):
         if snap is not None and name in snap:
             snap[name] = max(0, int(snap.get(name, 0)) - int(count))
         wait(0.3)
+
+
+# ---------------------------------------------------------------------------------------------
+# FIX (reported on MuMu Player, 17 Nov): taps that land inside the red no-deploy zone are ignored
+# by the game. When a base reaches over the fixed deploy edge, most of the air line was ignored and
+# the troops only went in with the end-of-attack dump, 10+ s later and alone - some never.
+# After a line is dropped, read what is still in the troop bar and drop it again right away,
+# further out from the base, then on the other sides.
+BASE_CENTRE = (800, 430)
+SCREEN_MARGIN = 12
+HUD_BOXES = (                       # battle screen areas a tap must never reach (1600 x 900)
+    (0, 0, 340, 255),               # attacker name and available loot
+    (690, 0, 910, 100),             # battle timer
+    (1225, 0, 1600, 215),           # own resources
+    (0, 600, 235, 720),             # End Battle / Surrender
+    (1320, 560, 1600, 720),         # damage and stars
+    (0, 712, 1600, 900),            # troop bar
+)
+SMALL_SHIFT = 30                    # px further out: the map usually goes on a little past the edge
+MIN_TH_DISTANCE = 140               # a deploy point this close to the Town Hall is a misread red line
+
+
+def tap_is_safe(point):
+    x, y = point
+    if not (SCREEN_MARGIN <= x <= 1600 - SCREEN_MARGIN and SCREEN_MARGIN <= y <= 900 - SCREEN_MARGIN):
+        return False
+    return not any(x1 <= x <= x2 and y1 <= y <= y2 for x1, y1, x2, y2 in HUD_BOXES)
+
+
+def shift_line_outward(side_line, distance):
+    """The side moved `distance` px away from the base (perpendicular to it)."""
+    (x1, y1), (x2, y2) = side_line
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy) or 1.0
+    nx, ny = -dy / length, dx / length
+    mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+    cx, cy = BASE_CENTRE
+    if math.hypot(mx + nx - cx, my + ny - cy) < math.hypot(mx - cx, my - cy):
+        nx, ny = -nx, -ny
+    return ((x1 + nx * distance, y1 + ny * distance), (x2 + nx * distance, y2 + ny * distance))
+
+
+def _safe_points(side_line, center, width, count):
+    pts = [p for p in build_line_points(side_line, center, width, count) if tap_is_safe(p)]
+    if not pts:
+        pts = [p for p in build_line_points(side_line, center, width, 9) if tap_is_safe(p)]
+    if not pts:
+        return []
+    return (pts * count)[:count]
+
+
+def _red_line_points(vision, side_line, center, width, count, th_pos):
+    """Points on the detected red line (attack/redline.py) of this side, or []."""
+    try:
+        from attack import redline
+        from attack.geometry import FOUR_SIDES
+        depths = redline.detect(vision.grab())
+    except Exception:
+        return []
+    if not depths:
+        return []
+    mid = ((side_line[0][0] + side_line[1][0]) / 2, (side_line[0][1] + side_line[1][1]) / 2)
+    j = min(range(len(FOUR_SIDES)), key=lambda i: math.hypot((FOUR_SIDES[i][0][0] + FOUR_SIDES[i][1][0]) / 2 - mid[0],
+                                                            (FOUR_SIDES[i][0][1] + FOUR_SIDES[i][1][1]) / 2 - mid[1]))
+    if j not in depths:
+        return []
+    (x1, y1), (x2, y2) = FOUR_SIDES[j]
+    length = math.hypot(x2 - x1, y2 - y1) or 1.0
+    t0 = ((center[0] - x1) * (x2 - x1) + (center[1] - y1) * (y2 - y1)) / length ** 2
+    span = width / length
+    ts = [min(1.0, max(0.0, t0 - span / 2 + span * i / max(1, count - 1))) for i in range(count)] if count > 1 else [t0]
+    pts = []
+    for t in ts:
+        x, y = redline.point_on_line(j, depths[j], t)
+        p = (int(x), int(y))
+        if tap_is_safe(p) and (th_pos is None or math.hypot(p[0] - th_pos[0], p[1] - th_pos[1]) >= MIN_TH_DISTANCE):
+            pts.append(p)
+    return (pts * count)[:count] if pts else []
+
+
+def redeploy_missing(vision, tabs, names, side_line, center, width, counts=None, th_pos=None):
+    """Drop again whatever of `names` is still in the troop bar. Every try first reads the bar, so
+    it stops as soon as everything is in:
+      1. the same line again (a missed tap or a card that was not selected);
+      2. this side's detected red line (when the base reaches over the usual line);
+      3. a little further out on this side;
+      4. the other sides."""
+    th_pos = th_pos or getattr(vision, 'last_th_pos', None)
+    plain = lambda line, c: (lambda n: _safe_points(line, c, width, n))                  # noqa: E731
+    others = [s for s in THREE_SIDES if [tuple(p) for p in s] != [tuple(p) for p in side_line]]
+    plans = [('again on the same line', plain(side_line, center)),
+             ('on the red line of this side', lambda n: _red_line_points(vision, side_line, center, width, n, th_pos))]
+    out = shift_line_outward(side_line, SMALL_SHIFT)
+    plans.append(('a little further out', plain(out, closest_point_on_line_with_margin(center, out, width / 2))))
+    for s in others:
+        plans.append(('on another side', plain(s, closest_point_on_line_with_margin(th_pos or BASE_CENTRE, s, width / 2))))
+    for label, make_points in plans:
+        screen = vision.grab()
+        left = {}
+        for name in names:
+            if name in tabs:
+                n = vision.read_troop_count(tabs[name], screen=screen)
+                if n:
+                    left[name] = int(n)
+        if not left:
+            return
+        print('[DEPLOY] Not deployed yet: ' + ', '.join(f'{v} {k.split("_", 1)[1]}' for k, v in left.items())
+              + f' - dropping {label}')
+        for name, n in left.items():
+            pts = make_points(n)
+            if pts:
+                deploy_troop(tabs[name], pts)
+            if counts is not None and name in counts:
+                counts[name] = 0
+        wait(0.5)
+    left = [k for k in names if k in tabs and vision.read_troop_count(tabs[k])]
+    if left:
+        print('[DEPLOY] Still not deployed after every try: ' + ', '.join(left))
+
+
+def sweep_leftover_troops(vision):
+    """After any strategy (CSV scripts, Loot Maxxing, ...): nothing that could fight stays in the
+    troop bar. Every troop / event troop card that still shows a count is dropped from the side
+    nearest the Town Hall (further out first, then the other sides)."""
+    if not vision.is_in_battle():
+        return
+    tabs = vision.detect_tabs()
+    names = [n for n in tabs if n.startswith(('troop_', 'event_'))]
+    if not names:
+        return
+    th_pos = vision.last_th_pos or BASE_CENTRE
+    side = THREE_SIDES[closest_side_index(th_pos, THREE_SIDES)]
+    redeploy_missing(vision, tabs, names, side, closest_point_on_line_with_margin(th_pos, side, 160), 320)

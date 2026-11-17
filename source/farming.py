@@ -674,6 +674,11 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                 used = module.run_attack(adb, vision, cfg)
                 if isinstance(used, str):        # a strategy handed the attack to another one
                     strategy = used
+                try:                             # FIX (17 Nov): troops the game refused never stay behind
+                    from attack.attacklogic import sweep_leftover_troops
+                    sweep_leftover_troops(vision)
+                except Exception as e:
+                    print(f'[DEPLOY] Leftover check failed: {e.__class__.__name__}: {e}')
                 print('[BATTLE] Attack finished, waiting for battle to end')
             except Exception as e:
                 print(f"[ATTACK] Strategy '{strategy}' crashed: {e.__class__.__name__}: {e}")

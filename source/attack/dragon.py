@@ -6,7 +6,7 @@ from attack.attacklogic import (wait, closest_side_index, closest_side_midpoint,
                                 build_line_points, deploy_siege_if_present, deploy_dragon_spells,
                                 dump_remaining_spells_on_th, dump_remaining_troops,
                                 closest_point_on_line_with_margin, set_attack_runtime_settings,
-                                wait_before_retap, get_troop_drop_width)
+                                wait_before_retap, get_troop_drop_width, redeploy_missing)
 
 AIR_TROOP_WIDTH = 360
 DROP_SPEED = 0.5
@@ -80,6 +80,9 @@ def run_attack(adb, vision, active_config=None):
     if 'troop_balloon' in tabs:
         deploy_troop(tabs['troop_balloon'], balloon_line_points[:balloon_count])
         snapshot['troop_balloon'] = max(0, int(snapshot.get('troop_balloon', 0)) - int(balloon_count))
+    # 2b) whatever the game refused (taps inside the no-deploy zone): again, right away
+    redeploy_missing(v, tabs, ['troop_dragon', 'troop_dragon_rider', 'troop_balloon'], side_line, center, width,
+                     snapshot)
     wait(0.8)
 
     # 3) event troops along the same side (centered on side midpoint)
