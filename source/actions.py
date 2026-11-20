@@ -68,12 +68,42 @@ def tap_return_home(adb, vision):
     return bool(pos)
 
 
+# UPDATE (seen 20 Nov): "Welcome Back Chief! / While you were away..." opens at login (e.g. "Your
+# Village was Attacked"). It has no close X, only a green Okay. The window is recognised by its title,
+# so this Okay cannot be the Okay of a confirmation dialog. Across 741 saved screens the title scores
+# 1.00 on this window and at most 0.43 anywhere else.
+WELCOME_BACK_TITLE_REGION = (300, 40, 1300, 190)
+WELCOME_BACK_OKAY_REGION = (500, 600, 1100, 880)
+WELCOME_BACK_OKAY_POINT = (818, 750)
+
+
+def dismiss_welcome_back(adb, vision, screen=None):
+    """Tap Okay on the "Welcome Back Chief!" window. True when the window was there."""
+    if not vision.templates.get('welcome_back'):
+        return False
+    if screen is None:
+        screen = vision.grab()
+    if not vision.match_template(screen, 'welcome_back', 0.8, region=WELCOME_BACK_TITLE_REGION):
+        return False
+    okay = None
+    if vision.templates.get('welcome_back_okay'):
+        okay = vision.match_template(screen, 'welcome_back_okay', 0.8, region=WELCOME_BACK_OKAY_REGION)
+    print('[HOME]Welcome Back window, tapping Okay')
+    click_point(adb, okay or WELCOME_BACK_OKAY_POINT)
+    time.sleep(1.0)
+    return True
+
+
 def dismiss_home_popups(adb, vision, rounds=3):
-    """Close windows over the home village with their red close X only. Returns 'close' or None.
+    """Close windows over the home village: the red close X, and the Okay of the Welcome Back window.
+    Returns 'close', 'okay' or None.
     A generic green Okay is deliberately NOT tapped: across 737 saved screens it matched confirmation
     dialogs ("End battle?", "Remove challenge?"), and an Okay can confirm spending gems."""
     tapped = None
     for _ in range(rounds):
+        if dismiss_welcome_back(adb, vision):
+            tapped = 'okay'
+            continue
         close = vision.match_template(vision.grab(), 'upgrade_window_close', 0.6, region=WINDOW_CLOSE_REGION)
         if close:
             print('[HOME]Window over the village, tapping its close X')

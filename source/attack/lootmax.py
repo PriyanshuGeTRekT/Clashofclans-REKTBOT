@@ -405,6 +405,16 @@ def run_attack(adb, vision, active_config=None):
         _pause(0.3, 0.9, human)
         cast(sp, lambda i: th, 'on the core')
 
+    # 4d) spells beyond the right edge of a scrolling bar (13+ cards): Revive and the like over the
+    # heroes, the rest on the core
+    try:
+        from attack.attacklogic import deploy_hidden_cards
+        over_heroes = _lerp(hero_center, th, 0.62)
+        deploy_hidden_cards(vision, tabs, th, log_prefix='LOOTMAX',
+                            point_for=lambda name: over_heroes if name in LATE_SPELLS + PATH_SPELLS else th)
+    except Exception as e:
+        _log(f'cards beyond the bar were not played: {e.__class__.__name__}: {e}')
+
     print('=== LOOTMAX ATTACK DEPLOYED ===')
     _finish(vision, cfg, human)
     return NAME

@@ -611,3 +611,65 @@ def sweep_leftover_troops(vision):
     th_pos = vision.last_th_pos or BASE_CENTRE
     side = THREE_SIDES[closest_side_index(th_pos, THREE_SIDES)]
     redeploy_missing(vision, tabs, names, side, closest_point_on_line_with_margin(th_pos, side, 160), 320)
+
+
+
+# ------------------------------------------------------------------ cards beyond the bar's right edge
+# UPDATE (seen 20 Nov): with 13 or more cards the battle bar no longer shrinks, it scrolls. The last
+# cards (usually spells: a Revive in the army where this was seen) sit beyond the right edge behind a
+# small arrow, are never detected and so were never played.
+BAR_FULL_X = 1400                    # a card centred right of this: the bar is filled up to the edge
+BAR_SCROLL_LEFT = (1300, 812, 300, 812, 500)
+BAR_SCROLL_BACK = (300, 812, 1300, 812, 500)
+HIDDEN_SPELL_MAX_TAPS = 11
+
+
+def bar_is_full(vision, tabs):
+    """True when a detected card reaches the right end of the battle bar (more may follow)."""
+    xs = [p[0] for p in (tabs or {}).values()]
+    for positions in (getattr(vision, 'tab_matches', {}) or {}).values():
+        xs += [p[0] for p in positions]
+    return bool(xs) and max(xs) >= BAR_FULL_X
+
+
+def deploy_hidden_cards(vision, tabs, th_pos, point_for=None, log_prefix='ATTACK'):
+    """Scroll the battle bar to its end and cast the spells that were beyond the right edge.
+
+    `tabs` is what was detected before scrolling; `point_for(name)` may give the target for a spell
+    (default: the Town Hall, or the middle of the map). Returns the number of spells cast. Troop and
+    hero cards found there are only reported: they need a deploy spot the caller knows."""
+    from adb import swipe
+    if not bar_is_full(vision, tabs):
+        return 0
+    target = th_pos or (800, 420)
+    known = set(tabs or {})
+    swipe(*BAR_SCROLL_LEFT)
+    time.sleep(1.0)
+    cast = 0
+    try:
+        now = vision.detect_tabs() or {}
+        fresh = {k: p for k, p in now.items() if k not in known}
+        if not fresh:
+            return 0
+        counts = read_battle_snapshot(vision, fresh, prefixes=('spell_',), log_prefix=None)
+        for name, pos in fresh.items():
+            if not name.startswith('spell_'):
+                print(f'[{log_prefix}] {name} was beyond the end of the bar and is left unplayed')
+                continue
+            n = min(int(counts.get(name, 0) or 0) or 1, HIDDEN_SPELL_MAX_TAPS)
+            point = (point_for(name) if point_for else None) or target
+            print(f'[{log_prefix}] {n}x {name[6:]} from beyond the end of the bar')
+            tap(*pos)
+            time.sleep(0.25)
+            for _ in range(n):
+                tap(int(point[0]), int(point[1]))
+                time.sleep(0.25)
+            cast += n
+    finally:
+        swipe(*BAR_SCROLL_BACK)
+        time.sleep(0.8)
+        try:
+            vision.detect_tabs()                 # card positions as the caller knows them
+        except Exception:
+            pass
+    return cast

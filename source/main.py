@@ -155,6 +155,12 @@ def run_pre_home_village_checks(vision, settle_frame=None, maintenance_wait_seco
             print('[MAIN]Maintenance break detected during settle')
         return 'maintenance_break'
 
+    # UPDATE (20 Nov): the "Welcome Back Chief!" window at login has only an Okay; without this the
+    # bot waited out the launch grace period and relaunched the game.
+    from actions import dismiss_welcome_back
+    if dismiss_welcome_back(adb, vision, settle_frame):
+        return 'welcome_back'
+
     event_dialog = vision.match_template(settle_frame, 'event_dialog', 0.85)
     if event_dialog:
         import new_ui_intro as intro_mod

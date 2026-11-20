@@ -699,6 +699,15 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                     sweep_leftover_troops(vision)
                 except Exception as e:
                     print(f'[DEPLOY] Leftover check failed: {e.__class__.__name__}: {e}')
+                # UPDATE (20 Nov): spells beyond the right edge of a scrolling battle bar (13+ cards)
+                # were never played. Loot Maxxing does this itself, before it ends the battle.
+                if strategy != 'lootmax':
+                    try:
+                        from attack.attacklogic import deploy_hidden_cards
+                        seen = {k: v[0] for k, v in (getattr(vision, 'tab_matches', {}) or {}).items() if v}
+                        deploy_hidden_cards(vision, seen, getattr(vision, 'last_th_pos', None))
+                    except Exception as e:
+                        print(f'[ATTACK] Cards beyond the bar were not played: {e.__class__.__name__}: {e}')
                 print('[BATTLE] Attack finished, waiting for battle to end')
             except Exception as e:
                 print(f"[ATTACK] Strategy '{strategy}' crashed: {e.__class__.__name__}: {e}")
