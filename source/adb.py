@@ -579,21 +579,6 @@ def tap_batch_small(coords):
         print('[ADB] batched taps timed out')
 
 
-def tap_chain(points):
-    """Tap every (x, y) in order with ONE adb call (no pause between them, no jitter): about 70 ms per
-    tap, the fastest `input tap` goes. Used to drop a whole army in a burst."""
-    check_stop()
-    points = [(int(x), int(y)) for x, y in points]
-    if not points:
-        return
-    shell_cmd = ' ; '.join(f'input tap {x} {y}' for x, y in points)
-    try:
-        _run_subprocess([_require_adb_path(), '-s', get_active_target(), 'shell', shell_cmd],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
-    except subprocess.TimeoutExpired:
-        print('[ADB] chained taps timed out')
-
-
 EXPECTED_SIZE = (1600, 900)
 
 
