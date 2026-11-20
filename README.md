@@ -7,7 +7,7 @@
 <p align="center"><b>Clash Rekt Bot</b> farms, upgrades and plays Clash of Clans for you on any Android emulator, on Windows, macOS and Linux. One click to start, no setup knowledge needed.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.1-FF3B5C?style=for-the-badge" alt="version 2.1.1">
+  <img src="https://img.shields.io/badge/version-2.1.2-FF3B5C?style=for-the-badge" alt="version 2.1.2">
   <img src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-1B2142?style=for-the-badge" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/python-3.12-FFB938?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/tested%20on-MEmu%209.5.8.0-22D39A?style=for-the-badge" alt="tested on MEmu 9.5.8.0">
@@ -56,11 +56,11 @@ Get the installer for your system from the **[Releases page](https://github.com/
 
 | System | Download | Install |
 |---|---|---|
-| **Windows** 10/11 | `ClashRektBot-Setup-2.1.1.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
-| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.1-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
-| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.1_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.1_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
-| **Linux** (any distro) | `ClashRektBot-2.1.1-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
-| **No installer** (any system) | `ClashRektBot-2.1.1.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
+| **Windows** 10/11 | `ClashRektBot-Setup-2.1.2.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
+| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.2-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
+| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.2_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.2_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
+| **Linux** (any distro) | `ClashRektBot-2.1.2-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
+| **No installer** (any system) | `ClashRektBot-2.1.2.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
 
 The Windows installer (`.exe`) is built separately and may appear on a release a little later than the other files; the `.zip` works on Windows right away.
 
@@ -293,7 +293,8 @@ Clash Rekt Bot has been prepared for this update from the official patch notes a
 | **Magic Items** button became **Inventory**, and the **Battle** button looks slightly different | The bot no longer relies on one button to know it is in the village. It checks three: Battle, Build and Shop. Two of them are enough. Dimmed buttons behind an open window don't count. |
 | **Emotes** on the victory screen | The bot looks for **Return Home** on the screen before tapping it. If it can't find it, it taps the usual spot. |
 | **Star Bonus** reworked (Snack Packs at 2 and 5 stars, Clan Castle Treasury) and new pop-ups | Windows left open over the village are closed with their red **X**. The bot never taps an unknown **Okay** or **Use**, so it can't confirm a purchase or an upgrade by accident. |
-| **Snack Pack** screen (a wooden table with the pack on it, then a green **Continue**) | If this screen is in the way, the bot taps the pack open and presses **Continue**. It does the same at start-up, so a reward waiting at login doesn't block the bot. Magic Snacks are never activated by the bot; the game activates them by itself when their timer runs out. |
+| **Snack Pack** screen (a wooden table with the pack on it, then a green **Continue**) | Seen in the game (Battle Bake after a battle, Star Bonus pack): the bot taps the pack open and presses **Continue**, again if another reward follows. It starts 1.5 seconds after the battle, and does the same at start-up, so a reward waiting at login doesn't block the bot. Magic Snacks are never activated by the bot; the game activates them by itself when their timer runs out. |
+| **Battle speed events** (a green **1x** button at the bottom right once the first troop is down; one tap makes it **4x**) | Seen in the game: **50% Loot Maxxing** drops troops, siege machine and heroes in one burst (about 2 seconds), presses the button, then casts the spells with shorter pauses. A battle takes 13 to 25 seconds. The button is only tapped while it shows **1x**. The other attack styles press it after they have deployed. |
 | **Town Hall 19** (four looks: standard, Barbarian Hall, Archer Hall, Wizard Hall) | Attacks still work: if the Town Hall isn't recognised, the bot aims at the middle of the base. The screen is saved to `runtime/logs/th_unknown/` (at most one every 10 minutes) so a TH19 picture can be added. |
 | **Heroic Spell**, **Squads** and any other new card | **50% Loot Maxxing** plays every card in the battle bar that still has a count, even ones it has no picture for: troop and Squad cards go round the three sides, spell cards go on the heroes' path. With a picture in `runtime/templates/tabs/` (see the README in that folder) the Heroic Spell is placed like Rage. The other strategies use only the cards they know. |
 | **Forced game update** | If Clash of Clans doesn't reach the village after 3 restarts, the bot stops and tells you to update the game from the Play Store. The screen is saved as `runtime/logs/startup_stuck_<time>.png`. |

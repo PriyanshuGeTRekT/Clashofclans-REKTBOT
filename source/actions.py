@@ -99,6 +99,13 @@ REWARD_TEXT_SCALES = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
 def find_continue_button(vision):
     """Green Continue button: the whole button first, then just its lettering (any button width)."""
     pos = None
+    # the Snack Pack / Battle Bake reward (20 Nov: its Continue is ~15 % bigger than the chest one and
+    # neither older picture reached 0.7 on it)
+    if vision.templates.get('snack_continue'):
+        pos = vision.match_template_region_multiscale(REWARD_TEXT_REGION, 'snack_continue', 0.8,
+                                                      scales=[1.0, 0.95, 1.05, 0.9, 1.1])
+        if pos:
+            return pos
     if vision.templates.get('chest_continue'):
         pos = vision.match_template_region_multiscale(fp.CHEST_CONTINUE_SEARCH_REGION, 'chest_continue', 0.8,
                                                       scales=REWARD_CONTINUE_SCALES)
@@ -129,34 +136,41 @@ def resolve_reward_scene(adb, vision, allow_hits=False):
     """Full-screen reward scene (Snack Pack, chest): tap Continue when it is there; with allow_hits,
     tap the pack on the Snack Pack table a few times to open it first.
     Returns 'continue', 'hit' or None (nothing done)."""
-    pos = find_continue_button(vision)
-    if pos:
-        print('[HOME]Reward screen, tapping Continue')
-        click_point(adb, pos)
-        time.sleep(1.5)
-        return 'continue'
-    if not allow_hits:
-        return None
-    screen = vision.grab()
-    if (not looks_like_snack_table(screen) or not village_buttons_hidden(vision, screen)
-            or vision.is_in_battle() or vision.is_battle_end()):
-        return None
-    print('[HOME]Snack Pack screen, tapping the pack to open it')
+    # The whole scene is worked through in one go (20 Nov, Battle Bake after a battle): the pack takes
+    # four taps, a flash, then the snack with a green Continue; several rewards can follow each other.
+    done = None
     x1, y1, x2, y2 = REWARD_HIT_AREA
-    for _ in range(random.randint(4, 6)):
-        adb.tap(random.randint(x1, x2), random.randint(y1, y2))
-        time.sleep(random.uniform(0.25, 0.5))
-    deadline = time.time() + 6.0
-    while time.time() < deadline:
+    deadline = time.time() + 30.0
+    quiet = 0                                    # looks in a row with nothing to tap
+    while time.time() < deadline and quiet < 6:
         pos = find_continue_button(vision)
         if pos:
-            print('[HOME]Reward opened, tapping Continue')
-            time.sleep(0.6)
+            print('[HOME]Reward screen, tapping Continue')
             click_point(adb, pos)
-            time.sleep(1.5)
-            return 'continue'
-        time.sleep(0.6)
-    return 'hit'
+            time.sleep(0.8)
+            done, quiet = 'continue', 0
+            continue
+        if not allow_hits:
+            break
+        screen = vision.grab()
+        if vision.is_home_village():
+            break
+        if (not looks_like_snack_table(screen) or not village_buttons_hidden(vision, screen)
+                or vision.is_in_battle() or vision.is_battle_end()):
+            if done is None:
+                break                            # not a reward scene at all
+            quiet += 1                           # between two rewards (flash, fade): look again
+            time.sleep(0.4)
+            continue
+        if done != 'hit' or quiet == 0:
+            print('[HOME]Snack Pack screen, tapping the pack to open it')
+        for _ in range(4):
+            adb.tap(random.randint(x1, x2), random.randint(y1, y2))
+            time.sleep(random.uniform(0.18, 0.3))
+        done = done or 'hit'
+        quiet += 1 if done == 'continue' else 0
+        time.sleep(0.5)
+    return done
 
 
 def click_army_bar(adb, bars, slot_index):

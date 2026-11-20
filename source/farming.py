@@ -129,6 +129,12 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
             return gold
 
         gold = F()
+        if gold < MIN_HOME_GOLD_BEFORE_ATTACK:
+            # a full-screen reward scene (Star Bonus Snack Pack: it opens a moment after the village was
+            # confirmed) hides the gold counter, which then reads 0: open the reward and read again
+            if resolve_reward_scene(adb, vision, allow_hits=True) is not None:
+                time.sleep(1.0)
+                gold = F()
         if gold >= MIN_HOME_GOLD_BEFORE_ATTACK:
             return True
         fails += 1
@@ -143,6 +149,12 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
             if now < next_check:
                 time.sleep(min(1.0, next_check - now))
                 continue
+            if resolve_reward_scene(adb, vision, allow_hits=True) is not None:
+                time.sleep(1.0)
+                if F() >= MIN_HOME_GOLD_BEFORE_ATTACK:
+                    print('[STATUS] Reward screen was hiding the gold counter, resuming attacks')
+                    low_gold_recovery = False
+                    return True
             print('[STATUS] Checking resource collectors')
             collector = vision.match_template(vision.grab(), 'gold_collector', 0.75,
                                               region=fp.COLLECTOR_SEARCH_REGION)
@@ -225,13 +237,21 @@ def run_farming(adb, vision, stats, active_config, pause_if_needed,
                     return 'RECOVERY'
                 # FIX: a CoC window left open (army, picker, info panel) hides the home markers;
                 # try the standard top-right close X before falling back to a full CoC restart.
+                # reward scene right after a battle (Snack Pack / Battle Bake): no reason to wait for it
+                if 1.5 < now - home_wait_start <= 6 and now >= home_close_next:
+                    if resolve_reward_scene(adb, vision, allow_hits=True) is not None:
+                        home_close_next = time.time() + 0.5
+                        continue
+                    home_close_next = time.time() + 1.5
                 if now - home_wait_start > 6 and now >= home_close_next:
                     waited = now - home_wait_start
                     if dismiss_home_popups(adb, vision) is not None:      # red X first
                         pass
                     # UPDATE: Star Bonus Snack Pack / chest scene: Continue, or open the pack first
-                    elif resolve_reward_scene(adb, vision, allow_hits=waited > 10) is not None:
-                        pass
+                    elif resolve_reward_scene(adb, vision, allow_hits=True) is not None:
+                        home_close_next = time.time() + 0.5
+                        time.sleep(0.5)
+                        continue
                     elif waited > 30 and not home_back_pressed:
                         # last step before a full restart: Android Back closes most windows
                         print('[HOME]Still not home, pressing Back')

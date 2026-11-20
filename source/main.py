@@ -547,7 +547,7 @@ def main(stats):
                     if time.time() - launched_at > 25:
                         from actions import dismiss_home_popups, resolve_reward_scene
                         if dismiss_home_popups(adb, vision) is None:
-                            resolve_reward_scene(adb, vision, allow_hits=time.time() - launched_at > 50)
+                            resolve_reward_scene(adb, vision, allow_hits=time.time() - launched_at > 30)
                     time.sleep(3)
                     continue
                 relaunches += 1

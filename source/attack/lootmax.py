@@ -20,7 +20,8 @@ import math
 import random
 import time
 
-from adb import tap, tap_raw
+from adb import tap, tap_chain, tap_raw
+from attack import speed
 from attack.attacklogic import find_siege_tab, read_battle_snapshot, set_attack_runtime_settings
 from attack.geometry import FOUR_SIDES
 
@@ -51,10 +52,14 @@ def _log(msg):
 
 
 # ------------------------------------------------------------------ randomness helpers
+_time_scale = 1.0                    # 0.25 once the event's 4x speed button is pressed (attack/speed.py)
+
+
 def _pause(lo, hi, human=True):
-    """Sleep a random time in [lo, hi] s (skewed towards the middle, like a hand)."""
+    """Sleep a random time in [lo, hi] s (skewed towards the middle, like a hand). Shrinks with the
+    battle clock when the battle runs faster."""
     t = random.triangular(lo, hi) if human else (lo + hi) / 2
-    time.sleep(max(0.0, t))
+    time.sleep(max(0.0, t * _time_scale))
 
 
 def _clamp(p):
@@ -221,10 +226,19 @@ def find_unknown_cards(vision, tabs, frame):
 
 # ------------------------------------------------------------------ the attack
 def run_attack(adb, vision, active_config=None):
+    global _time_scale
     cfg = active_config or {}
     set_attack_runtime_settings(cfg)
     human = bool(cfg.get('LOOTMAX_HUMANIZE', True))
+    _time_scale = 1.0
+    speed.new_attack()
+    boost = speed.enabled(cfg)
+    # speed event (a "1x" button that makes the battle 4x faster): once the button was seen in this
+    # session, the whole army goes down in one burst and the button is pressed straight after
+    fast = boost and speed.seen
     print('=== LOOTMAX ATTACK START ===')
+    if fast:
+        _log('speed event: dropping the whole army in one burst')
     tabs = vision.detect_tabs()
     snapshot = read_battle_snapshot(vision, tabs, prefixes=('troop_', 'event_', 'spell_', 'squad_'),
                                     log_prefix='LOOTMAX')
@@ -248,13 +262,19 @@ def run_attack(adb, vision, active_config=None):
         if human and random.random() < 0.5:
             points.reverse()                     # sweep right-to-left this time
         _log(f'{count}x {main.split("_", 1)[1]} round three sides')
-        tap(*tabs[main])
-        _pause(0.12, 0.3, human)
-        for p in points:                         # adb adds ~80 ms per tap: ~11 drops/s like the replay
-            tap_raw(*_wobble(p, 14, human))
-            _pause(0.0, 0.06, human)
+        if fast:
+            tap_chain([tabs[main]] + [_wobble(p, 14, human) for p in points])
+        else:
+            tap(*tabs[main])
+            _pause(0.12, 0.3, human)
+            for p in points:                     # adb adds ~80 ms per tap: ~11 drops/s like the replay
+                tap_raw(*_wobble(p, 14, human))
+                _pause(0.0, 0.06, human)
     else:
         _log('no main troop found in the troop bar')
+    if boost and not fast and speed.should_probe() and speed.find(vision):
+        fast = True                              # the button popped up with the first troops
+        _log('speed event button found: dropping the rest in one burst')
 
     # 1b) any other troops in the army (e.g. Dragon Riders) go round the same three sides
     # (Squads from the Clash of Titans update deploy a whole group per tap: same path as the troops;
@@ -263,8 +283,11 @@ def run_attack(adb, vision, active_config=None):
         n = int(snapshot.get(extra, 0) or 0)
         if n <= 0:
             continue
-        _pause(0.2, 0.6, human)
         _log(f'{n}x {extra.split("_", 1)[1]} round three sides')
+        if fast:
+            tap_chain([tabs[extra]] + [_wobble(p, 16, human) for p in _sample_runs(_dragon_path(human), n, human)])
+            continue
+        _pause(0.2, 0.6, human)
         tap(*tabs[extra])
         _pause(0.1, 0.25, human)
         for p in _sample_runs(_dragon_path(human), n, human):
@@ -276,8 +299,11 @@ def run_attack(adb, vision, active_config=None):
         if kind != 'troop':
             continue
         n = min(n, 40)
-        _pause(0.2, 0.6, human)
         _log(f'{n}x unknown troop card (x={x}) round three sides')
+        if fast:
+            tap_chain([(x, y)] + [_wobble(p, 16, human) for p in _sample_runs(_dragon_path(human), n, human)])
+            continue
+        _pause(0.2, 0.6, human)
         tap(x, y)
         _pause(0.1, 0.25, human)
         for p in _sample_runs(_dragon_path(human), n, human):
@@ -290,7 +316,8 @@ def run_attack(adb, vision, active_config=None):
         i = random.randrange(len(heroes) - 1)            # sometimes two heroes swap places in the order
         heroes[i], heroes[i + 1] = heroes[i + 1], heroes[i]
     spots = _hero_spots(heroes, human)
-    _pause(0.7, 1.6, human)
+    if not fast:
+        _pause(0.7, 1.6, human)
     deployed = []
     siege = find_siege_tab(tabs)
     if siege and siege[0] == 'siege_none':       # empty siege slot
@@ -299,7 +326,16 @@ def run_attack(adb, vision, active_config=None):
     if heroes:
         _log('heroes: ' + ', '.join(h.replace('hero_', '') for h in heroes)
              + (f' + siege {siege[0].replace("siege_", "")}' if siege else ''))
-    for i, h in enumerate(heroes):
+    if fast and heroes:                          # heroes and siege in one burst: card, spot, card, spot...
+        chain = []
+        for i, h in enumerate(heroes):
+            chain += [tabs[h], _wobble(spots[h], 10, human)]
+            if siege and i == siege_after:
+                chain += [siege[1], _wobble(spots[h], 14, human)]
+                siege = None
+        tap_chain(chain)
+        deployed = list(heroes)
+    for i, h in enumerate([] if fast else heroes):
         tap(*tabs[h])
         _pause(0.08, 0.2, human)
         tap_raw(*_wobble(spots[h], 10, human))
@@ -317,6 +353,14 @@ def run_attack(adb, vision, active_config=None):
         tap_raw(*_wobble(_lerp(LEFT_CORNER, TOP_CORNER, 0.8), 14, human))
     hero_center = (sum(p[0] for p in spots.values()) / len(spots), sum(p[1] for p in spots.values()) / len(spots))         if spots else TOP_CORNER
     used = set()
+
+    # speed event: everything that walks or flies is down, so the battle goes to 4x now; the pauses
+    # between the spells below shrink with the battle clock
+    if boost and (fast or speed.should_probe()):
+        if speed.press(vision, tries=3 if fast else 1):
+            _time_scale = speed.FAST_FACTOR
+        elif fast:
+            _log('speed button not on screen this time')
 
     def cast(spell, points_fn, label):
         """Cast every copy of `spell`; points_fn(i) gives the i-th target."""
@@ -418,7 +462,7 @@ def _finish(vision, cfg, human):
     _log(f'ending at {target}% with 1 star')
     start = last_change = time.time()
     last = None
-    stall = random.uniform(18, 28) if human else 22
+    stall = max(6.0, (random.uniform(18, 28) if human else 22) * _time_scale)
     while time.time() - start < MAX_BATTLE_SECONDS:
         _pause(1.0, 2.2, human)
         screen = vision.grab()
