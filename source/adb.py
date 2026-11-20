@@ -332,6 +332,24 @@ def is_app_in_foreground(package_name):
     return False
 
 
+def app_display_id(package_name):
+    """Android display that shows the app's focused window, or None when that cannot be told.
+
+    `screencap` and `input` work on display 0. Some emulators can give each app a display of its own
+    (MuMu Player 12 with "Keep running in the background" on: reported 17 Nov, the game sat on display
+    14 and the bot saw the launcher). Reads `dumpsys window displays`, where every "mDisplayId=N" block
+    has its own mCurrentFocus line."""
+    out = adb_target(['shell', 'dumpsys', 'window', 'displays']) or ''
+    display = None
+    for line in out.splitlines():
+        found = re.search(r'\bmDisplayId=(\d+)', line)
+        if found:
+            display = int(found.group(1))
+        elif display is not None and 'mCurrentFocus=' in line and package_name in line:
+            return display
+    return None
+
+
 def launch_app(package_name):
     print('[ADB] Launching Clash of Clans')
     adb_target(['shell', 'monkey', '-p', package_name, '-c', 'android.intent.category.LAUNCHER', '1'])

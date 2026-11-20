@@ -107,7 +107,7 @@ The bot sees the game through screenshots, so the emulator screen must be **1600
 | **BlueStacks 5** | Windows | Settings → Display → **1600 x 900**, Pixel density **300** | Settings → Advanced → **Android Debug Bridge** on | BlueStacks · port shown under ADB (often 5555/5556) |
 | **LDPlayer 9** | Windows | Settings → Advanced → Custom **1600 x 900**, **300 DPI** | Settings → Other → ADB debugging → **Open local connection** | LDPlayer · 5555 |
 | **Nox** | Windows | Settings → Performance → Custom **1600 x 900**, **300 DPI** | On by default | Nox · 62001 |
-| **MuMu Player 12** | Windows | Settings → Display → Custom **1600 x 900**, **300 DPI** | On by default | MuMu Player · 16384 |
+| **MuMu Player 12** | Windows | Settings → Display → Custom **1600 x 900**, **300 DPI**. Leave Settings → Other → **Keep running in the background** off | On by default | MuMu Player · 16384 |
 | **BlueStacks Air** | macOS (Apple Silicon) | Settings → Display → **1600 x 900**, **300 DPI** | Settings → Advanced → ADB on | BlueStacks · use **Find running emulators** |
 | **MuMu Player Pro** | macOS | Settings → Display → **1600 x 900**, **300 DPI** | On by default | MuMu Player · use **Find running emulators** |
 | **Anything else** (Android Studio emulator, Genymotion, a real phone over USB/Wi-Fi) | Any | 1600 x 900, 300 DPI | Developer options → USB debugging | **Other** · its ADB port |
@@ -312,6 +312,7 @@ Clash Rekt Bot has been prepared for this update from the official patch notes a
 | *"No emulator answered at 127.0.0.1:…"* | Start the emulator first and check ADB is on. Use **Emulator → Find running emulators** to get the right port. |
 | Connection test shows ✗ next to the screen size or DPI | Set **1600 x 900** and **300 DPI** in the emulator and restart it. |
 | Taps land in the wrong place | Same as above. Also check the game language is **English**. |
+| **MuMu Player 12**: the bot never finds the village, or stops with *"Clash of Clans is running on Android display …"* | MuMu's keep-alive option gives every app its own display, and the bot can only see the main one. In MuMu open **Settings → Other**, turn off **Keep running in the background**, restart MuMu and press Start again. |
 | First start fails ("Setup failed") | Check your internet connection and start again. To rebuild the setup from scratch, run `Start Clash Rekt Bot.bat -Repair` (Windows) or `./start-clash-rekt-bot.sh --repair` (macOS/Linux). |
 | macOS says the script "can't be opened" | Right-click **Start Clash Rekt Bot.command** → **Open** → **Open**. |
 | Linux: window doesn't open | Install the Qt runtime libraries: `sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libegl1`. |

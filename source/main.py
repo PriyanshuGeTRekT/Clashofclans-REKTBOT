@@ -550,6 +550,20 @@ def main(stats):
                             resolve_reward_scene(adb, vision, allow_hits=time.time() - launched_at > 30)
                     time.sleep(3)
                     continue
+                # FIX (reported on MuMu Player 12, 17 Nov): with the emulator's keep-alive option on, the
+                # game runs on a display of its own and the bot only ever sees the launcher. Relaunching
+                # cannot help, so say what to change and stop.
+                try:
+                    game_display = adb.app_display_id(PACKAGE)
+                except Exception:
+                    game_display = None
+                if game_display:
+                    print(f'[STARTUP] Clash of Clans is running on Android display {game_display}, not on the '
+                          'main display (0). The bot can only see and tap the main display, so it sees the '
+                          "emulator's home screen instead of the game. On MuMu Player: Settings -> Other -> "
+                          'turn off "Keep running in the background", restart MuMu, then press Start again.')
+                    BotControl.running = False
+                    raise control.BotStopped()
                 relaunches += 1
                 if relaunches > MAX_STARTUP_RELAUNCHES:
                     # Usually a forced game update (new Clash of Clans version on the Play Store) or a
