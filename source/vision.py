@@ -757,10 +757,14 @@ class Vision:
         elixir_img = crop(screen, elixir_r)
         dark_img = crop(screen, dark_r)
 
-        def B(crop):
+        def B(crop, yellow=False):
             hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-            lower = np.array([0, 0, 200])
-            upper = np.array([180, 60, 255])
+            if yellow:
+                lower = np.array([26, 120, 200])
+                upper = np.array([36, 255, 255])
+            else:
+                lower = np.array([0, 0, 200])
+                upper = np.array([180, 60, 255])
             mask = cv2.inRange(hsv, lower, upper)
             mask = cv2.resize(mask, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_LINEAR)
             _, mask = cv2.threshold(mask, 180, 255, cv2.THRESH_BINARY)
@@ -771,6 +775,13 @@ class Vision:
                 if h > 12 and w > 4:
                     boxes.append((x, y, w, h))
             boxes.sort(key=lambda b: b[0])
+            if yellow:
+                # the number ends at the first wide gap: what follows is the "2x" of the event (digits
+                # sit at most 24 px apart in this doubled mask, the "2x" starts 70 px or more later)
+                for i in range(1, len(boxes)):
+                    if boxes[i][0] - (boxes[i - 1][0] + boxes[i - 1][2]) > 44:
+                        boxes = boxes[:i]
+                        break
             text = ''
             for x, y, w, h in boxes:
                 glyph = mask[y:y + h, x:x + w]
@@ -778,9 +789,22 @@ class Vision:
                 text += F.match_digit(glyph)
             return int(text) if text else 0
 
-        gold = B(gold_img)
-        elixir = B(elixir_img)
-        dark = B(dark_img)
+        # UPDATE (21 Nov, "Loot Available 2x" event): the heading changes and the numbers turn yellow
+        # with a cupcake and "2x" after each, so the white-digit reader returned 0/0/0 for every base
+        # and the bot skipped them all. When the usual heading is not on screen, read yellow digits;
+        # the usual white reading stays as it was, and is the fallback when no yellow digit is found.
+        event_look = False
+        if F.templates.get('available_loot'):
+            event_look = not F.match_template(screen, 'available_loot', fp.ENEMY_LOOT_ANCHOR_THRESHOLD,
+                                              region=fp.ENEMY_LOOT_ANCHOR_SEARCH_REGION)
+        if event_look:
+            gold, elixir, dark = B(gold_img, True), B(elixir_img, True), B(dark_img, True)
+            if not (gold or elixir or dark):
+                gold, elixir, dark = B(gold_img), B(elixir_img), B(dark_img)
+        else:
+            gold = B(gold_img)
+            elixir = B(elixir_img)
+            dark = B(dark_img)
         if ATTACK_DEBUG:
             print(f'[VISION] Enemy LootG:{gold} E:{elixir} D:{dark}')
         return gold, elixir, dark

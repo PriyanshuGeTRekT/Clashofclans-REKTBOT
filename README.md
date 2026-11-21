@@ -7,7 +7,7 @@
 <p align="center"><b>Clash Rekt Bot</b> farms, upgrades and plays Clash of Clans for you on any Android emulator, on Windows, macOS and Linux. One click to start, no setup knowledge needed.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.7-FF3B5C?style=for-the-badge" alt="version 2.1.7">
+  <img src="https://img.shields.io/badge/version-2.1.8-FF3B5C?style=for-the-badge" alt="version 2.1.8">
   <img src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-1B2142?style=for-the-badge" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/python-3.12-FFB938?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/tested%20on-MEmu%209.5.8.0-22D39A?style=for-the-badge" alt="tested on MEmu 9.5.8.0">
@@ -56,11 +56,11 @@ Get the installer for your system from the **[Releases page](https://github.com/
 
 | System | Download | Install |
 |---|---|---|
-| **Windows** 10/11 | `ClashRektBot-Setup-2.1.7.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
-| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.7-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
-| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.7_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.7_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
-| **Linux** (any distro) | `ClashRektBot-2.1.7-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
-| **No installer** (any system) | `ClashRektBot-2.1.7.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
+| **Windows** 10/11 | `ClashRektBot-Setup-2.1.8.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
+| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.8-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
+| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.8_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.8_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
+| **Linux** (any distro) | `ClashRektBot-2.1.8-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
+| **No installer** (any system) | `ClashRektBot-2.1.8.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
 
 The Windows installer (`.exe`) is built separately and may appear on a release a little later than the other files; the `.zip` works on Windows right away.
 
@@ -299,6 +299,7 @@ Clash Rekt Bot has been prepared for this update from the official patch notes a
 | **Welcome Back Chief!** window at login (*"While you were away… Your Village was Attacked"*, only an **Okay** button) | Seen in the game: the bot recognises the window by its title and taps **Okay**. Before, it waited 90 seconds and relaunched the game. |
 | **Battle bar that scrolls** (an army with 13 or more cards: the last ones sit beyond the right edge behind a small arrow) | Seen in the game: after the attack the bot scrolls the bar and casts the spells that were hidden (for example a Revive and Clan Castle spells), then scrolls back. Troop and hero cards found there are only reported in the log. |
 | **Clan Capital raids**: the **Attack Now?** window, the **Next Raid** window, and the raid battle bar | Seen in the game: the bot looks for the airship several times, skips districts that are already destroyed, confirms **Attack Now?**, and plays every lit card on a grid of spots from the middle of the map outwards (troops only land inside the area the game highlights). On a district at 0 % that area is a narrow strip and the grid is not yet proven there. |
+| **Loot Available 2x** event (the enemy loot numbers turn yellow, with a cupcake and **2x** after each) | Seen in the game: the bot reads the yellow numbers and stops before the **2x**. Before, it read 0 for every base and skipped them all. |
 | **Forced game update** | If Clash of Clans doesn't reach the village after 3 restarts, the bot stops and tells you to update the game from the Play Store. The screen is saved as `runtime/logs/startup_stuck_<time>.png`. |
 
 **After your game updates:**
