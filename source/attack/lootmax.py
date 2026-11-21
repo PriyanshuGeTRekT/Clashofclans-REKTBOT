@@ -410,7 +410,9 @@ def run_attack(adb, vision, active_config=None):
     try:
         from attack.attacklogic import deploy_hidden_cards
         over_heroes = _lerp(hero_center, th, 0.62)
-        deploy_hidden_cards(vision, tabs, th, log_prefix='LOOTMAX',
+        # troops found there go where a hero went in: a spot the game accepted
+        hidden_spot = spots[deployed[0]] if deployed else TOP_CORNER
+        deploy_hidden_cards(vision, tabs, th, log_prefix='LOOTMAX', troop_point=hidden_spot,
                             point_for=lambda name: over_heroes if name in LATE_SPELLS + PATH_SPELLS else th)
     except Exception as e:
         _log(f'cards beyond the bar were not played: {e.__class__.__name__}: {e}')

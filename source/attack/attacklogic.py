@@ -622,6 +622,7 @@ BAR_FULL_X = 1400                    # a card centred right of this: the bar is 
 BAR_SCROLL_LEFT = (1300, 812, 300, 812, 500)
 BAR_SCROLL_BACK = (300, 812, 1300, 812, 500)
 HIDDEN_SPELL_MAX_TAPS = 11
+HIDDEN_TROOP_MAX_TAPS = 12
 
 
 def bar_is_full(vision, tabs):
@@ -632,39 +633,74 @@ def bar_is_full(vision, tabs):
     return bool(xs) and max(xs) >= BAR_FULL_X
 
 
-def deploy_hidden_cards(vision, tabs, th_pos, point_for=None, log_prefix='ATTACK'):
-    """Scroll the battle bar to its end and cast the spells that were beyond the right edge.
+def deploy_hidden_cards(vision, tabs, th_pos, point_for=None, log_prefix='ATTACK', troop_point=None):
+    """Scroll the battle bar to its end and play what was beyond the right edge.
 
-    `tabs` is what was detected before scrolling; `point_for(name)` may give the target for a spell
-    (default: the Town Hall, or the middle of the map). Returns the number of spells cast. Troop and
-    hero cards found there are only reported: they need a deploy spot the caller knows."""
+    `tabs` is what was detected before scrolling. Spells are cast on `point_for(name)` (default: the
+    Town Hall, or the middle of the map). Troop, event and hero cards, and cards without a picture that
+    still show a count (seen 21 Nov: the Clan Castle troops), are dropped on `troop_point` (default: the
+    side nearest the Town Hall). Returns the number of taps that played something."""
     from adb import swipe
     if not bar_is_full(vision, tabs):
         return 0
-    target = th_pos or (800, 420)
+    target = th_pos or BASE_CENTRE
+    if troop_point is None:
+        side = THREE_SIDES[closest_side_index(target, THREE_SIDES)]
+        troop_point = closest_point_on_line_with_margin(target, side, 160)
+    troop_point = (int(troop_point[0]), int(troop_point[1]))
     known = set(tabs or {})
+    others = [s for s in THREE_SIDES if closest_point_on_line_with_margin(target, s, 160) != troop_point]
+    second_spot = closest_point_on_line_with_margin(target, others[0], 160) if others else troop_point
+    second_spot = (int(second_spot[0]), int(second_spot[1]))
+
+    def play(pos, n, cap, spots):
+        """Tap the card and its spot n times; when the card still shows a count afterwards (the spot
+        was refused, or the card is not what its picture said), try the next spot."""
+        done = 0
+        for spot in spots:
+            tap(int(pos[0]), int(pos[1]))
+            time.sleep(0.25)
+            for _ in range(n):
+                tap(int(spot[0]), int(spot[1]))
+                time.sleep(0.25)
+            done += n
+            time.sleep(0.4)
+            left = vision.read_troop_count(pos)
+            if not left or left <= 0:
+                break
+            n = min(int(left), cap)
+        return done
+
     swipe(*BAR_SCROLL_LEFT)
     time.sleep(1.0)
-    cast = 0
+    played = 0
     try:
         now = vision.detect_tabs() or {}
         fresh = {k: p for k, p in now.items() if k not in known}
-        if not fresh:
-            return 0
-        counts = read_battle_snapshot(vision, fresh, prefixes=('spell_',), log_prefix=None)
+        counts = read_battle_snapshot(vision, fresh, prefixes=('spell_', 'troop_', 'event_'), log_prefix=None)
         for name, pos in fresh.items():
-            if not name.startswith('spell_'):
-                print(f'[{log_prefix}] {name} was beyond the end of the bar and is left unplayed')
-                continue
-            n = min(int(counts.get(name, 0) or 0) or 1, HIDDEN_SPELL_MAX_TAPS)
-            point = (point_for(name) if point_for else None) or target
-            print(f'[{log_prefix}] {n}x {name[6:]} from beyond the end of the bar')
-            tap(*pos)
-            time.sleep(0.25)
-            for _ in range(n):
-                tap(int(point[0]), int(point[1]))
-                time.sleep(0.25)
-            cast += n
+            if name.startswith('siege_'):
+                continue                         # the one siege card was already handled before the scroll
+            if name.startswith('spell_'):
+                n = min(int(counts.get(name, 0) or 0) or 1, HIDDEN_SPELL_MAX_TAPS)
+                point = (point_for(name) if point_for else None) or target
+                print(f'[{log_prefix}] {n}x {name[6:]} from beyond the end of the bar')
+                played += play(pos, n, HIDDEN_SPELL_MAX_TAPS, (point, troop_point))
+            else:
+                n = min(int(counts.get(name, 0) or 0) or 1, HIDDEN_TROOP_MAX_TAPS)
+                print(f'[{log_prefix}] {n}x {name.split("_", 1)[1]} from beyond the end of the bar')
+                played += play(pos, n, HIDDEN_TROOP_MAX_TAPS, (troop_point, second_spot))
+        # cards no picture recognises that still show a count: unplayed, whatever they are
+        try:
+            from attack.lootmax import find_unknown_cards
+            unknown = find_unknown_cards(vision, now, vision.grab())
+        except Exception as e:
+            unknown = []
+            print(f'[{log_prefix}] unknown cards beyond the bar were not checked: {e.__class__.__name__}: {e}')
+        for x, y, n, _kind in unknown:
+            n = min(int(n), HIDDEN_TROOP_MAX_TAPS)
+            print(f'[{log_prefix}] {n}x card without a picture (x={x}) from beyond the end of the bar')
+            played += play((x, y), n, HIDDEN_TROOP_MAX_TAPS, (troop_point, second_spot))
     finally:
         swipe(*BAR_SCROLL_BACK)
         time.sleep(0.8)
@@ -672,4 +708,4 @@ def deploy_hidden_cards(vision, tabs, th_pos, point_for=None, log_prefix='ATTACK
             vision.detect_tabs()                 # card positions as the caller knows them
         except Exception:
             pass
-    return cast
+    return played
