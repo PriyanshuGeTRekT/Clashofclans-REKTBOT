@@ -219,6 +219,23 @@ class Vision:
                 scores[name] = float(max_val)
                 if ATTACK_DEBUG:
                     print(f'[VISION] Tab {name} found ({max_val:.2f})')
+        # FIX (21 Nov): siege cards are matched with TM_CCORR_NORMED, which scores 0.87-0.94 on any
+        # card, so every siege picture "matched" somewhere and the first one in the list was used
+        # (seen: the x0 Archer card was tapped as "siege barracks" while the real machine, 0.99, was
+        # never played). A battle has one siege slot: keep the best match only, and not even that one
+        # when a known troop, hero or spell card sits on the same slot.
+        siege = [n for n in found if n.startswith('siege_')]
+        if siege:
+            best = max(siege, key=lambda n: scores.get(n, 0.0))
+            bx = found[best][0]
+            near = int(45 * scale)
+            taken = any(abs(px - bx) < near for n, pts in matches.items() if not n.startswith('siege_')
+                        for px, _py in pts)
+            for n in siege:
+                if n != best or taken:
+                    found.pop(n, None)
+                    matches.pop(n, None)
+                    scores.pop(n, None)
         return found, matches, scores
 
     def detect_tabs(A):
