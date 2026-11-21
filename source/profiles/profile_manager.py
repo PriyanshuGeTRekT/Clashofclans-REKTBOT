@@ -81,6 +81,60 @@ class ProfileManager:
         self.vision = vision
         os.makedirs(PROFILE_DIR, exist_ok=True)
 
+    # FIX (21 Nov): on MEmu (Android 9) the Supercell ID account list is missing from plain screenshots
+    # (see adb.recorded_frame), so the bot never found the list, the cards or an account to tap. The
+    # first frame that shows the list decides which kind of capture is used from then on.
+    _use_recorder = False
+
+    def _on_profile_screen(self, frame):
+        if frame is None or getattr(frame, 'size', 0) == 0:
+            return False
+        h, w = frame.shape[:2]
+        return bool(self.vision.match_template(frame, 'profile_screen', 0.8, region=(0, 0, w // 2, h)))
+
+    def _grab_profile_screen(self):
+        """(frame, True when it shows the Supercell ID account list). A screenshot where that works,
+        otherwise a frame taken from a short screen recording."""
+        if not self._use_recorder:
+            frame = self.vision.grab()
+            if self._on_profile_screen(frame):
+                return frame, True
+        recorded = adb.recorded_frame()
+        if self._on_profile_screen(recorded):
+            if not self._use_recorder:
+                print('[PROFILES] The account list is not in screenshots on this emulator, reading it '
+                      'from a screen recording instead')
+            self._use_recorder = True
+            return recorded, True
+        return (recorded if recorded is not None else self.vision.grab()), False
+
+    def _find_profile_boxes(self, frame, threshold=0.85):
+        """Account cards on `frame` as (x, y, w, h) of their left edge marker, like
+        vision.find_all_templates('profile_box') but on a frame of our own."""
+        tpl = self.vision.templates.get('profile_box')
+        if not tpl or frame is None or getattr(frame, 'size', 0) == 0:
+            return []
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        img = tpl['img']
+        h, w = img.shape[:2]
+        res = cv2.matchTemplate(gray, img, cv2.TM_CCOEFF_NORMED)
+        ys, xs = np.where(res >= threshold)
+        results = []
+        for x, y in zip(xs, ys):
+            if any(abs(x - ex) < w * 0.6 and abs(y - ey) < h * 0.6 for ex, ey, _w, _h in results):
+                continue
+            results.append((int(x), int(y), w, h))
+        return results
+
+    def _is_login_card(self, card):
+        """The "Log in to Supercell ID" card under the accounts looks like an account card."""
+        try:
+            gray = cv2.cvtColor(cv2.resize(card, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC), cv2.COLOR_BGR2GRAY)
+            text = pytesseract.image_to_string(gray, config='--psm 6').lower()
+        except Exception:
+            return False
+        return 'log in' in text or 'supercell' in text
+
     def _decode_profile_image(self, path):
         try:
             raw = Path(path).read_bytes()
@@ -247,7 +301,11 @@ class ProfileManager:
             print('Align uncaptured profiles on screen, then click Continue...')
         else:
             print('Align FIRST profiles on screen, then click Continue...')
-        control.BotControl.wait_for_continue('Profile Calibration', 'Align profiles on screen, then click Continue.')
+        # UPDATE (21 Nov): only ask for a click when the account cards are not already on screen
+        first_frame, on_screen = self._grab_profile_screen()
+        if not (on_screen and self._find_profile_boxes(first_frame)):
+            control.BotControl.wait_for_continue('Profile Calibration',
+                                                 'Align profiles on screen, then click Continue.')
         captured = len(existing)
         seen_names = set(existing)
         known_images = {}
@@ -264,8 +322,8 @@ class ProfileManager:
         empty_scrolls = 0
         while captured < target and attempts < max_attempts:
             attempts += 1
-            frame = self.vision.grab()
-            boxes = self.vision.find_all_templates('profile_box')
+            frame, _on_screen = self._grab_profile_screen()
+            boxes = self._find_profile_boxes(frame)
             if not boxes:
                 print('[PROFILES] No profile boxes detected!')
                 if attempts < max_attempts:
@@ -285,6 +343,8 @@ class ProfileManager:
                 y2 = y + h + Y_OFFSET
                 card = frame[y1:y2, x1:x2]
                 if not self.is_valid_profile_card(card):
+                    continue
+                if self._is_login_card(card):
                     continue
                 name_region = self.extract_profile_name_region(card)
                 is_unknown = False
@@ -350,9 +410,10 @@ class ProfileManager:
         print('\n✅ Profile calibration complete.\n')
         print('[PROFILES]active_profiles.json written')
 
-    def find_profile_on_screen(self, profile_path, threshold=0.95):
+    def find_profile_on_screen(self, profile_path, threshold=0.95, frame=None):
         thr = threshold
-        frame = self.vision.grab()
+        if frame is None:
+            frame, _on_screen = self._grab_profile_screen()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         template = cv2.imread(profile_path, cv2.IMREAD_GRAYSCALE)
         if template is None:
@@ -383,29 +444,35 @@ class ProfileManager:
             tap(*fp.HOME_OPEN_PROFILES)
             deadline = time.time() + 15.0
             on_profile_screen = False
+            frame = None
             while time.time() < deadline:
-                frame = self.vision.grab()
-                if frame is not None and frame.size > 0:
-                    h, w = frame.shape[:2]
-                    region = (0, 0, w // 2, h)
-                    on_profile_screen = self.vision.match_template_region(region, 'profile_screen', 0.8)
-                    if on_profile_screen:
-                        break
+                frame, on_profile_screen = self._grab_profile_screen()
+                if on_profile_screen:
+                    break
                 time.sleep(0.25)
             if not on_profile_screen:
                 print('[PROFILES] not on profile screen running recovery')
                 return False
             for _step in range(scroll_steps):
-                pos = self.find_profile_on_screen(profile_png, threshold=threshold)
+                pos = self.find_profile_on_screen(profile_png, threshold=threshold, frame=frame)
+                frame = None                      # after a scroll the next look needs a new frame
                 if pos:
                     print('[PROFILES]Profile found, tapping')
                     tap(*pos)
                     time.sleep(3.0)
-                    for _ in range(10):
+                    # UPDATE (21 Nov): another village takes 15-25 s to load and may open with a window
+                    # (Welcome Back, a reward); the old 5 s wait gave up while it was still loading.
+                    loaded_by = time.time() + 60
+                    while time.time() < loaded_by:
                         if self.vision.is_home_village():
                             print('[PROFILES]Profile loaded OK')
                             return True
-                        time.sleep(0.5)
+                        try:
+                            from actions import dismiss_home_popups
+                            dismiss_home_popups(adb, self.vision)
+                        except Exception:
+                            pass
+                        time.sleep(1.5)
                     print('[PROFILES]Home not detected after tap')
                     break
                 adb.swipe(*SCROLL_DOWN, 600)

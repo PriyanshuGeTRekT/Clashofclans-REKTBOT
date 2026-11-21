@@ -411,6 +411,54 @@ def screenshot():
     return img
 
 
+def recorded_frame(seconds=1):
+    """One frame of the screen taken with `screenrecord` (BGR image), or None when that fails.
+
+    FIX (21 Nov): on MEmu (Android 9) `screencap` does not contain the Supercell ID panel: Android
+    reports the panel window on top, yet eight screenshots in a row showed only the Settings page
+    behind it. A screen recording does contain it. Slower than screenshot() (about 2 s), so it is only
+    used for that panel."""
+    check_stop()
+    remote = '/sdcard/crb_frame.mp4'
+    base = [_require_adb_path(), '-s', get_active_target()]
+    local = None
+    try:
+        _run_subprocess(base + ['shell', 'screenrecord', '--time-limit', str(int(seconds)), remote],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+        result = _run_subprocess(base + ['exec-out', 'cat', remote], stdout=subprocess.PIPE,
+                                 stderr=subprocess.DEVNULL, timeout=20)
+        data = result.stdout or b''
+        if len(data) < 1000:
+            return None
+        import tempfile
+        fd, local = tempfile.mkstemp(suffix='.mp4')
+        with os.fdopen(fd, 'wb') as f:
+            f.write(data)
+        capture = cv2.VideoCapture(local)
+        frame = None
+        while True:
+            ok, img = capture.read()
+            if not ok:
+                break
+            frame = img
+        capture.release()
+        return frame
+    except Exception as exc:
+        print(f'[ADB] screen recording frame failed: {exc.__class__.__name__}: {exc}')
+        return None
+    finally:
+        if local:
+            try:
+                os.remove(local)
+            except OSError:
+                pass
+        try:
+            _run_subprocess(base + ['shell', 'rm', '-f', remote], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, timeout=10)
+        except Exception:
+            pass
+
+
 def _read_adb_device_states(adb_path, timeout=10):
     try:
         result = _run_subprocess([adb_path, 'devices'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
