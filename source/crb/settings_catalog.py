@@ -312,8 +312,8 @@ SETTINGS = [
        'Every 5 min opens clan chat and fills requests: what a request asks for (see "Give what the request asks for"), otherwise the troops/spells listed in DONATE_TROOPS.',
        widget="pro_widgets['DONATE_ENABLED']", saved_by='update_pro_features',
        notes='with DONATE_REQUESTED off, no effect while DONATE_TROOPS is empty'),
-    _s('DONATE_TROOPS', 'What to donate, e.g. troop_edragon:1, troop_balloon:5, spell_rage:1', 'text', '', P, 'Pro: Clan Donations',
-       "Comma list of 'tab_key:count' (count defaults to 1, min 1) to donate per request.",
+    _s('DONATE_TROOPS', 'What to donate, e.g. troop_edragon:1, troop_balloon:5, spell_rage:1, troop_valkyrie:max', 'text', '', P, 'Pro: Clan Donations',
+       "Comma list of 'tab_key:count' to donate per request. The count is 1 when left out; 'max' gives as many as the request takes (castles differ in size).",
        depends_on={'any': ['DONATE_ENABLED', 'DONATE_ONLY']}, widget="pro_widgets['DONATE_TROOPS']", saved_by='update_pro_features',
        notes="row label shown as 'What to donate', full text as placeholder (Q14)"),
     # Clan Capital

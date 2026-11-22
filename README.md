@@ -36,7 +36,7 @@
 | **Village chores** | Collects resources and the loot cart, claims free event rewards, removes obstacles, and runs building, hero, lab, pet, equipment and wall upgrades. It also handles the Helper Hut and keeps Super Troops boosted. |
 | **Builder Base** | Builder Base battles on a timer, or a **Builder Base only** mode, plus Builder Base upgrades. |
 | **Donation-only mode** | No attacks: the bot keeps the clan chat open and donates the moment a request appears (Clan & Events → Donations). |
-| **Donate what is asked for** | When a clan request names the troops and spells it wants, the bot gives exactly those; other requests get your own "What to donate" list (Clan & Events → Donations). |
+| **Donate what is asked for** | When a clan request names the troops and spells it wants, the bot gives exactly those; other requests get your own "What to donate" list (Clan & Events → Donations). In that list a count of `max` (for example `troop_valkyrie:max`) gives as many as the request takes, whatever the castle size. |
 | **Clan & events** | Requests and donates troops, plays Clan Games, and handles Clan Capital raids. Ranked tournaments and Clan War attacks are both **off unless you turn them on**. |
 | **Plays like a person** | Set play hours, take random breaks and stop automatically after N attacks, hours or loot gained. |
 | **Many accounts** | Rotates between your Supercell ID accounts. Each account can have its own settings. |

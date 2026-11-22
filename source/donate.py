@@ -46,14 +46,24 @@ def _give_requested_on(cfg):
     return bool(cfg.get('DONATE_REQUESTED', True))
 
 
+FILL = 'max'                      # count of a "What to donate" entry: as many as the request takes
+FILL_WORDS = ('max', 'all', 'fill', 'full', '*')
+
+
 def _wanted(cfg):
-    """[(tab_key, count), ...] from DONATE_TROOPS, e.g. 'troop_edragon:2, spell_rage:1'."""
+    """[(tab_key, count), ...] from DONATE_TROOPS, e.g. 'troop_edragon:2, spell_rage:1, troop_valkyrie:max'.
+    The count is 1 when left out, and FILL for max / all / fill / *: castles differ in size, so a
+    fixed number is too many for a small one and too few for a big one."""
     out = []
     for part in str(cfg.get('DONATE_TROOPS', '') or '').split(','):
         part = part.strip()
         if not part:
             continue
         key, _, n = part.partition(':')
+        n = n.strip().lower()
+        if n in FILL_WORDS:
+            out.append((key.strip(), FILL))
+            continue
         try:
             out.append((key.strip(), max(1, int(n or 1))))
         except ValueError:
@@ -156,13 +166,47 @@ def coloured_cards(screen):
     return sorted(cards, key=lambda p: (round(p[1] / 60), p[0]))
 
 
+WINDOW_BODY = (620, 170, 1480, 870)      # the donation window below its title
+CHANGED_PIXELS = 12                      # this many pixels differing by more than CHANGED_BY: a real change
+CHANGED_BY = 35
+MAX_FILL_TAPS = 40                       # per "max" entry and request
+
+
+def _gave_something(before, after, card):
+    """True when a tap on `card` changed the donation window somewhere else than on that card: the
+    "Donate Troops: N/55" counter, the "Donated Troops and Spells" strip, or the window closing.
+    FIX: the first version compared the mean of the strip only, which a second troop of the same
+    kind (x1 becomes x2, a few pixels) did not move, so only one of several was given."""
+    if not donation_window_open(after):
+        return True                              # the game closes the window when the castle is full
+    x1, y1, x2, y2 = WINDOW_BODY
+    a = cv2.cvtColor(before[y1:y2, x1:x2], cv2.COLOR_BGR2GRAY).astype(np.int16)
+    b = cv2.cvtColor(after[y1:y2, x1:x2], cv2.COLOR_BGR2GRAY).astype(np.int16)
+    diff = np.abs(a - b) > CHANGED_BY
+    cx, cy = int(card[0]) - x1, int(card[1]) - y1
+    diff[max(0, cy - 80):cy + 80, max(0, cx - 62):cx + 62] = False     # the card itself (press, greying)
+    return int(diff.sum()) >= CHANGED_PIXELS
+
+
+def _fill_with(vision, slot, screen):
+    """Tap one card until a tap gives nothing more. Returns (given, last screen)."""
+    given = 0
+    for _ in range(MAX_FILL_TAPS):
+        if not donation_window_open(screen):
+            break
+        before = screen
+        tap(*slot)
+        time.sleep(0.45)
+        screen = vision.grab()
+        if not _gave_something(before, screen, slot):
+            break                                # full, or this card cannot be given
+        given += 1
+    return given, screen
+
+
 def _give_requested(vision, window):
     """Tap the coloured cards of the open donation window until none is left. Returns how many taps
-    gave something (the "Donated Troops and Spells" strip changed, or the card went grey)."""
-    def strip(img):
-        x1, y1, x2, y2 = DONATED_STRIP
-        return cv2.cvtColor(img[y1:y2, x1:x2], cv2.COLOR_BGR2GRAY).astype(np.int16)
-
+    gave something (the window changed away from the card, or the card went grey)."""
     given = 0
     taps, dead = {}, set()
     screen = window
@@ -174,13 +218,12 @@ def _give_requested(vision, window):
             break
         card = todo[0]
         key = (card[0] // 40, card[1] // 40)
-        before = strip(screen)
+        before = screen
         tap(*card)
         time.sleep(0.45)
         screen = vision.grab()
         still_there = any((c[0] // 40, c[1] // 40) == key for c in coloured_cards(screen))
-        changed = (not donation_window_open(screen) or not still_there
-                   or float(np.abs(strip(screen) - before).mean()) > 1.0)
+        changed = not still_there or _gave_something(before, screen, card)
         taps[key] = taps.get(key, 0) + 1
         if changed:
             given += 1
@@ -205,17 +248,27 @@ def _donate_into_window(vision, cfg, button):
             time.sleep(0.8)
         return given
     given = 0
+    screen = window
     for key, count in _wanted(cfg):
+        if count == FILL and not donation_window_open(screen):
+            break                        # the castle is full: the game closed the window
         slot = _find_slot(vision, window, key)
         if not slot:
+            continue
+        if count == FILL:
+            n, screen = _fill_with(vision, slot, screen)
+            given += n
+            _log(f'Donated {n} x {key} (as many as the request took)')
             continue
         for _ in range(count):
             tap(*slot)
             time.sleep(0.25)
             given += 1
         _log(f'Donated {count} x {key}')
-    tap(*button)                     # tapping Donate again closes the window
-    time.sleep(0.8)
+        screen = vision.grab()
+    if donation_window_open(vision.grab()):
+        tap(*button)                     # tapping Donate again closes the window
+        time.sleep(0.8)
     return given
 
 
