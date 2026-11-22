@@ -7,7 +7,7 @@
 <p align="center"><b>Clash Rekt Bot</b> farms, upgrades and plays Clash of Clans for you on any Android emulator, on Windows, macOS and Linux. One click to start, no setup knowledge needed.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.8-FF3B5C?style=for-the-badge" alt="version 2.1.8">
+  <img src="https://img.shields.io/badge/version-2.1.9-FF3B5C?style=for-the-badge" alt="version 2.1.9">
   <img src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-1B2142?style=for-the-badge" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/python-3.12-FFB938?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/tested%20on-MEmu%209.5.8.0-22D39A?style=for-the-badge" alt="tested on MEmu 9.5.8.0">
@@ -56,11 +56,11 @@ Get the installer for your system from the **[Releases page](https://github.com/
 
 | System | Download | Install |
 |---|---|---|
-| **Windows** 10/11 | `ClashRektBot-Setup-2.1.8.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
-| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.8-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
-| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.8_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.8_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
-| **Linux** (any distro) | `ClashRektBot-2.1.8-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
-| **No installer** (any system) | `ClashRektBot-2.1.8.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
+| **Windows** 10/11 | `ClashRektBot-Setup-2.1.9.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
+| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.9-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
+| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.9_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.9_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
+| **Linux** (any distro) | `ClashRektBot-2.1.9-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
+| **No installer** (any system) | `ClashRektBot-2.1.9.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
 
 The Windows installer (`.exe`) is built separately and may appear on a release a little later than the other files; the `.zip` works on Windows right away.
 
@@ -321,6 +321,7 @@ Clash Rekt Bot has been prepared for this update from the official patch notes a
 | macOS says the script "can't be opened" | Right-click **Start Clash Rekt Bot.command** → **Open** → **Open**. |
 | Linux: window doesn't open | Install the Qt runtime libraries: `sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libegl1`. |
 | **Accounts**: the bot opens the Supercell ID screen but finds no accounts (seen on MEmu) | On some emulators the account list is missing from normal screenshots. Since 2.1.6 the bot reads it from a short screen recording instead and says so in the log. Each account must already be in the game's **Switch ID** list (Settings → Supercell ID). |
+| A troop stays in the battle bar after the attack (for example 1 of 17 Dragons) | Fixed in 2.1.9 for **50% Loot Maxxing**: the bot reads the bar again after dropping and plays whatever the game refused, on another spot. If a card still stays, the log says *"Still not deployed after every try"*; send that log and the screenshot. |
 | The bot does something odd | Open **Logs**, set the filter to **Problems only**, and look at the screenshots saved in `runtime/logs`. |
 | Want the old window back | Start `runtime/run_bot.py --classic`. |
 
