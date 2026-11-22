@@ -38,8 +38,12 @@ def _log(msg):
 
 
 def due(cfg):
-    return (bool(cfg.get('DONATE_ENABLED', False)) and bool(_wanted(cfg))
+    return (bool(cfg.get('DONATE_ENABLED', False)) and (bool(_wanted(cfg)) or _give_requested_on(cfg))
             and time.time() >= _state['next_run'])
+
+
+def _give_requested_on(cfg):
+    return bool(cfg.get('DONATE_REQUESTED', True))
 
 
 def _wanted(cfg):
@@ -94,6 +98,97 @@ def _find_slot(vision, screen, key):
     return best
 
 
+# ---------------------------------------------------------------------------------------------
+# Requests that name what they want (UPDATE 22 Nov, asked for by a user): the request bubble then has a
+# "Requested:" row of small cards (x1 Archer, x3 ..., x1 Rage), and in the donation window the game shows
+# exactly those cards in colour and every other card in grey. So the bot does not need to know the
+# troops: it taps the coloured cards until none is left. Seen on 5 saved windows (27 Oct): 3 troops +
+# 2 spells requested -> 5 coloured cards; 2 troops + 1 spell -> 3.
+CARD_AREA = (620, 170, 1480, 740)        # the troop and spell rows of the donation window
+DONATED_STRIP = (640, 770, 1460, 860)    # "Donated Troops and Spells": changes when a tap gave something
+CARD_PITCH = (114, 143)                  # card spacing, to split cards that touch
+MAX_REQUEST_TAPS = 45                    # per request
+MAX_TAPS_PER_CARD = 12
+REQUEST_LABEL_ABOVE = (230, 110)         # the "Requested:" label sits this far above the Donate button
+
+
+def request_is_specific(vision, screen, button):
+    """True when the request above this Donate button has a "Requested:" row."""
+    if not getattr(vision, 'templates', {}).get('donate_requested'):
+        return False
+    y1 = max(0, int(button[1]) - REQUEST_LABEL_ABOVE[0])
+    y2 = max(y1 + 30, int(button[1]) - REQUEST_LABEL_ABOVE[1])
+    return bool(vision.match_template(screen, 'donate_requested', 0.8, region=(0, y1, 420, y2)))
+
+
+def donation_window_open(screen):
+    """The donation window is a large light panel right of the chat (0.62 of that area is light with
+    the window open, 0.02 on the village or in a battle)."""
+    x1, y1, x2, y2 = 630, 180, 1470, 860
+    hsv = cv2.cvtColor(screen[y1:y2, x1:x2], cv2.COLOR_BGR2HSV)
+    if float(((hsv[..., 1] < 40) & (hsv[..., 2] > 170)).mean()) <= 0.35:
+        return False
+    # ... with the dimmed clan chat left of it (mean brightness about 35): other light windows, like
+    # Settings, reach further left, and the Supercell ID screen is bright blue there
+    left = cv2.cvtColor(screen[200:800, 330:600], cv2.COLOR_BGR2HSV)[..., 2]
+    return float(left.mean()) < 90
+
+
+def coloured_cards(screen):
+    """Centres of the cards shown in colour in the donation window, row by row."""
+    x1, y1, x2, y2 = CARD_AREA
+    hsv = cv2.cvtColor(screen[y1:y2, x1:x2], cv2.COLOR_BGR2HSV)
+    mask = ((hsv[..., 1] > 90) & (hsv[..., 2] > 90)).astype(np.uint8) * 255
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    n, _labels, stats, _centroids = cv2.connectedComponentsWithStats(mask)
+    cards = []
+    for i in range(1, n):
+        x, y, w, h, area = stats[i]
+        if w < 70 or h < 90 or area < 0.45 * w * h:
+            continue
+        cols = max(1, round(w / CARD_PITCH[0]))
+        rows = max(1, round(h / CARD_PITCH[1]))
+        if cols > 7 or rows > 3:
+            continue
+        for r in range(rows):
+            for c in range(cols):
+                cards.append((int(x1 + x + (c + 0.5) * w / cols), int(y1 + y + (r + 0.5) * h / rows)))
+    return sorted(cards, key=lambda p: (round(p[1] / 60), p[0]))
+
+
+def _give_requested(vision, window):
+    """Tap the coloured cards of the open donation window until none is left. Returns how many taps
+    gave something (the "Donated Troops and Spells" strip changed, or the card went grey)."""
+    def strip(img):
+        x1, y1, x2, y2 = DONATED_STRIP
+        return cv2.cvtColor(img[y1:y2, x1:x2], cv2.COLOR_BGR2GRAY).astype(np.int16)
+
+    given = 0
+    taps, dead = {}, set()
+    screen = window
+    for _ in range(MAX_REQUEST_TAPS):
+        if not donation_window_open(screen):
+            break                                # the game closes the window when the castle is full
+        todo = [c for c in coloured_cards(screen) if (c[0] // 40, c[1] // 40) not in dead]
+        if not todo:
+            break
+        card = todo[0]
+        key = (card[0] // 40, card[1] // 40)
+        before = strip(screen)
+        tap(*card)
+        time.sleep(0.45)
+        screen = vision.grab()
+        still_there = any((c[0] // 40, c[1] // 40) == key for c in coloured_cards(screen))
+        changed = (not donation_window_open(screen) or not still_there
+                   or float(np.abs(strip(screen) - before).mean()) > 1.0)
+        taps[key] = taps.get(key, 0) + 1
+        if changed:
+            given += 1
+        if not changed or taps[key] >= MAX_TAPS_PER_CARD:
+            dead.add(key)                        # this card gives nothing (more): leave it
+    return given
+
+
 def _donate_into_window(vision, cfg, button):
     tap(*button)
     time.sleep(1.2)
@@ -102,6 +197,13 @@ def _donate_into_window(vision, cfg, button):
         _state['saved_windows'] += 1
         os.makedirs('logs', exist_ok=True)
         cv2.imwrite(os.path.join('logs', f"donate_window_{time.strftime('%H-%M-%S')}.png"), window)
+    if _give_requested_on(cfg) and donation_window_open(window) and request_is_specific(vision, window, button):
+        given = _give_requested(vision, window)
+        _log(f'Request names what it wants: {given} requested troop(s) / spell(s) given')
+        if donation_window_open(vision.grab()):
+            tap(*button)                 # tapping Donate again closes the window
+            time.sleep(0.8)
+        return given
     given = 0
     for key, count in _wanted(cfg):
         slot = _find_slot(vision, window, key)
@@ -159,7 +261,7 @@ def run_only(adb, vision, cfg, stats=None, pause_if_needed=None):
     """One slice of donation-only mode. Returns 'RECOVERY' when the game needs restarting, else None."""
     from control import BotControl
     wanted = _wanted(cfg)
-    if not wanted:
+    if not wanted and not _give_requested_on(cfg):
         if not _state['told_empty']:
             _state['told_empty'] = True
             _log('Donation-only mode is on but "What to donate" is empty: nothing to give. '

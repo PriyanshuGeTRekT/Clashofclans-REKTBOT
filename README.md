@@ -7,7 +7,7 @@
 <p align="center"><b>Clash Rekt Bot</b> farms, upgrades and plays Clash of Clans for you on any Android emulator, on Windows, macOS and Linux. One click to start, no setup knowledge needed.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.9-FF3B5C?style=for-the-badge" alt="version 2.1.9">
+  <img src="https://img.shields.io/badge/version-2.1.10-FF3B5C?style=for-the-badge" alt="version 2.1.10">
   <img src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-1B2142?style=for-the-badge" alt="Windows, macOS, Linux">
   <img src="https://img.shields.io/badge/python-3.12-FFB938?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/tested%20on-MEmu%209.5.8.0-22D39A?style=for-the-badge" alt="tested on MEmu 9.5.8.0">
@@ -36,6 +36,7 @@
 | **Village chores** | Collects resources and the loot cart, claims free event rewards, removes obstacles, and runs building, hero, lab, pet, equipment and wall upgrades. It also handles the Helper Hut and keeps Super Troops boosted. |
 | **Builder Base** | Builder Base battles on a timer, or a **Builder Base only** mode, plus Builder Base upgrades. |
 | **Donation-only mode** | No attacks: the bot keeps the clan chat open and donates the moment a request appears (Clan & Events → Donations). |
+| **Donate what is asked for** | When a clan request names the troops and spells it wants, the bot gives exactly those; other requests get your own "What to donate" list (Clan & Events → Donations). |
 | **Clan & events** | Requests and donates troops, plays Clan Games, and handles Clan Capital raids. Ranked tournaments and Clan War attacks are both **off unless you turn them on**. |
 | **Plays like a person** | Set play hours, take random breaks and stop automatically after N attacks, hours or loot gained. |
 | **Many accounts** | Rotates between your Supercell ID accounts. Each account can have its own settings. |
@@ -56,11 +57,11 @@ Get the installer for your system from the **[Releases page](https://github.com/
 
 | System | Download | Install |
 |---|---|---|
-| **Windows** 10/11 | `ClashRektBot-Setup-2.1.9.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
-| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.9-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
-| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.9_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.9_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
-| **Linux** (any distro) | `ClashRektBot-2.1.9-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
-| **No installer** (any system) | `ClashRektBot-2.1.9.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
+| **Windows** 10/11 | `ClashRektBot-Setup-2.1.10.exe` | Run it and click through the wizard. It installs for your user only (no admin password), adds a Start menu entry and an optional desktop shortcut, and offers to start the app at the end. If Windows says *"Windows protected your PC"*, click **More info → Run anyway** (the installer isn't code-signed). Uninstall from **Settings → Apps**. |
+| **macOS** 11+ (Apple Silicon or Intel) | `ClashRektBot-2.1.10-macOS.dmg` | Open the .dmg and drag **Clash Rekt Bot** into **Applications**. The first time, **right-click the app → Open → Open**, because macOS asks before opening apps from outside the App Store. |
+| **Linux** (Ubuntu/Debian) | `clash-rekt-bot_2.1.10_all.deb` | `sudo apt install ./clash-rekt-bot_2.1.10_all.deb`, then start **Clash Rekt Bot** from your app menu or run `clash-rekt-bot`. |
+| **Linux** (any distro) | `ClashRektBot-2.1.10-linux.tar.gz` | Unpack it anywhere and run `./start-clash-rekt-bot.sh`. |
+| **No installer** (any system) | `ClashRektBot-2.1.10.zip` | Unzip anywhere, then run **`Start Clash Rekt Bot.bat`** (Windows), **`Start Clash Rekt Bot.command`** (macOS) or `./start-clash-rekt-bot.sh` (Linux). |
 
 The Windows installer (`.exe`) is built separately and may appear on a release a little later than the other files; the `.zip` works on Windows right away.
 
@@ -322,6 +323,7 @@ Clash Rekt Bot has been prepared for this update from the official patch notes a
 | Linux: window doesn't open | Install the Qt runtime libraries: `sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libegl1`. |
 | **Accounts**: the bot opens the Supercell ID screen but finds no accounts (seen on MEmu) | On some emulators the account list is missing from normal screenshots. Since 2.1.6 the bot reads it from a short screen recording instead and says so in the log. Each account must already be in the game's **Switch ID** list (Settings → Supercell ID). |
 | A troop stays in the battle bar after the attack (for example 1 of 17 Dragons) | Fixed in 2.1.9 for **50% Loot Maxxing**: the bot reads the bar again after dropping and plays whatever the game refused, on another spot. If a card still stays, the log says *"Still not deployed after every try"*; send that log and the screenshot. |
+| Spells land away from the troops (for example every Rage on one strip) | Fixed in 2.1.10 for **50% Loot Maxxing**: Rage, Haste and Heal go on the troop groups (one on the heroes when there are 4 or more), Freeze and the like just ahead of the troops. Earthquake and Lightning still go on the Town Hall. |
 | The bot does something odd | Open **Logs**, set the filter to **Problems only**, and look at the screenshots saved in `runtime/logs`. |
 | Want the old window back | Start `runtime/run_bot.py --classic`. |
 

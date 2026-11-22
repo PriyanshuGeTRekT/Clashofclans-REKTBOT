@@ -57,6 +57,7 @@ TITLES = {
     'REQUEST_DONATIONS': 'Request troops from the clan',
     'DONATE_ENABLED': 'Donate to clan requests',
     'DONATE_TROOPS': 'What to donate',
+    'DONATE_REQUESTED': 'Give what the request asks for',
     'DONATE_ONLY': 'Donation-only mode',
     'DONATE_ONLY_POLL_SECONDS': 'Look at the chat every (seconds)',
     'CLAN_GAMES': 'Play Clan Games',
@@ -121,7 +122,7 @@ PAGES = [
         ('Upgrades', 'Spend Builder Base resources on visits.', 'builder', ['BB_AUTO_UPGRADE', 'BB_AUTO_LAB']),
     ]),
     ('clan', 'Clan & Events', 'Donations, Clan Games and the Clan Capital.', [
-        ('Donations', '', 'clan', ['REQUEST_DONATIONS', 'DONATE_ENABLED', 'DONATE_TROOPS', 'DONATE_ONLY',
+        ('Donations', '', 'clan', ['REQUEST_DONATIONS', 'DONATE_ENABLED', 'DONATE_REQUESTED', 'DONATE_TROOPS', 'DONATE_ONLY',
                                    'DONATE_ONLY_POLL_SECONDS']),
         ('Clan Games', '', 'star', ['CLAN_GAMES', 'CG_TROOP_CHALLENGES']),
         ('Clan Capital', '', 'village', ['CAPITAL_RAIDS_ENABLED', 'CAPITAL_MAX_RAIDS']),
