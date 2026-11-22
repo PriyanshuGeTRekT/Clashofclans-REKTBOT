@@ -219,13 +219,94 @@ def find_unknown_cards(vision, tabs, frame):
     return found[:UNKNOWN_CARD_MAX]
 
 
+# ------------------------------------------------------------------ nothing stays in the bar
+def _tap_field(p, r, human):
+    """Drop on `p` (wobbled by r). A point on a button (End Battle, Boost Heroes, Next, the loot
+    panel...) is not tapped: the troop stays in the bar and the leftover pass places it."""
+    from attack.attacklogic import tap_is_safe
+    q = _wobble(p, r, human)
+    if not tap_is_safe(q):
+        q = _clamp(p)
+        if not tap_is_safe(q):
+            return False
+    tap_raw(*q)
+    return True
+
+
+BAR_READ_SECONDS = 8                 # how long to wait for the battle bar at the start of an attack
+
+
+def _read_bar(vision):
+    """The cards of the battle bar. FIX (22 Nov): one look, taken while the battle screen was still
+    coming up, found no card at all; the attack then dropped nothing and waited out the whole battle.
+    Now the bar is read again for up to BAR_READ_SECONDS until a troop or hero card is there."""
+    tabs = {}
+    start = time.time()
+    tries = 0
+    while True:
+        tabs = vision.detect_tabs() or {}
+        tries += 1
+        if any(k.startswith(('troop_', 'event_', 'squad_', 'hero_')) for k in tabs):
+            break
+        if time.time() - start > BAR_READ_SECONDS:
+            _log('the battle bar shows no troop or hero card')
+            break
+        if tries == 3:                           # the card size may have been judged on a bad frame
+            vision._tab_scale_locked = False
+        time.sleep(0.6)
+    if tries > 1 and tabs:
+        _log(f'battle bar read on try {tries}')
+    return tabs
+
+
+def _drop_leftovers(vision, tabs, unknown, th):
+    """Every troop card that still shows a count is played again until the bar is empty.
+
+    FIX (22 Nov): the troops went down in one pass and the bar was never looked at again, so a tap
+    the game refused (red zone, the edge of the map, a button) left that troop in the bar for the
+    whole battle: "17 dragons" regularly ended with one unused. Cards with a picture go through
+    attacklogic.redeploy_missing (same line, the red line, further out, the other sides); cards
+    without a picture get the same sides in turn."""
+    try:
+        from attack import attacklogic as al
+        from attack.geometry import THREE_SIDES
+        if not vision.is_in_battle():
+            return
+        ref = th or al.BASE_CENTRE
+        side = THREE_SIDES[al.closest_side_index(ref, THREE_SIDES)]
+        center = al.closest_point_on_line_with_margin(ref, side, 160)
+        names = [k for k in tabs if k.startswith(('troop_', 'event_', 'squad_'))]
+        if names:
+            al.redeploy_missing(vision, tabs, names, side, center, 320, th_pos=ref)
+        sides = [side] + [s for s in THREE_SIDES if s is not side]
+        for x, y, _n, kind in unknown:
+            if kind != 'troop':
+                continue
+            for s in sides:
+                left = vision.read_troop_count((x, y))
+                if not left or left <= 0:
+                    break
+                pts = al._safe_points(s, al.closest_point_on_line_with_margin(ref, s, 160), 320, min(int(left), 40))
+                if not pts:
+                    continue
+                _log(f'{left} of the card without a picture (x={x}) still in the bar: dropping again')
+                tap(x, y)
+                time.sleep(0.2)
+                for p in pts:
+                    tap_raw(int(p[0]), int(p[1]))
+                    time.sleep(0.1)
+                time.sleep(0.5)
+    except Exception as e:                       # a check, never a reason to lose the attack
+        _log(f'leftover check failed: {e.__class__.__name__}: {e}')
+
+
 # ------------------------------------------------------------------ the attack
 def run_attack(adb, vision, active_config=None):
     cfg = active_config or {}
     set_attack_runtime_settings(cfg)
     human = bool(cfg.get('LOOTMAX_HUMANIZE', True))
     print('=== LOOTMAX ATTACK START ===')
-    tabs = vision.detect_tabs()
+    tabs = _read_bar(vision)
     snapshot = read_battle_snapshot(vision, tabs, prefixes=('troop_', 'event_', 'spell_', 'squad_'),
                                     log_prefix='LOOTMAX')
     th = vision.get_townhall_pos()
@@ -251,7 +332,7 @@ def run_attack(adb, vision, active_config=None):
         tap(*tabs[main])
         _pause(0.12, 0.3, human)
         for p in points:                         # adb adds ~80 ms per tap: ~11 drops/s like the replay
-            tap_raw(*_wobble(p, 14, human))
+            _tap_field(p, 14, human)
             _pause(0.0, 0.06, human)
     else:
         _log('no main troop found in the troop bar')
@@ -268,7 +349,7 @@ def run_attack(adb, vision, active_config=None):
         tap(*tabs[extra])
         _pause(0.1, 0.25, human)
         for p in _sample_runs(_dragon_path(human), n, human):
-            tap_raw(*_wobble(p, 16, human))
+            _tap_field(p, 16, human)
             _pause(0.03, 0.12, human)
 
     # 1c) troop or Squad cards without a picture: same three sides
@@ -281,8 +362,12 @@ def run_attack(adb, vision, active_config=None):
         tap(x, y)
         _pause(0.1, 0.25, human)
         for p in _sample_runs(_dragon_path(human), n, human):
-            tap_raw(*_wobble(p, 16, human))
+            _tap_field(p, 16, human)
             _pause(0.03, 0.12, human)
+
+    # 1d) the bar is read again: whatever the game refused (a tap on a spot it does not accept leaves
+    # that troop in the bar) goes in now, not after the battle
+    _drop_leftovers(vision, tabs, unknown, th)
 
     # 2) heroes on the fourth side
     heroes = [h for h in HERO_ORDER if h in tabs]
@@ -416,6 +501,9 @@ def run_attack(adb, vision, active_config=None):
                             point_for=lambda name: over_heroes if name in LATE_SPELLS + PATH_SPELLS else th)
     except Exception as e:
         _log(f'cards beyond the bar were not played: {e.__class__.__name__}: {e}')
+
+    # 4e) last look at the bar before the wait for the result
+    _drop_leftovers(vision, tabs, unknown, th)
 
     print('=== LOOTMAX ATTACK DEPLOYED ===')
     _finish(vision, cfg, human)

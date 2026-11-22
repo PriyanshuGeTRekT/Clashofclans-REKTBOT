@@ -493,6 +493,7 @@ HUD_BOXES = (                       # battle screen areas a tap must never reach
     (690, 0, 910, 100),             # battle timer
     (1225, 0, 1600, 215),           # own resources
     (0, 600, 235, 720),             # End Battle / Surrender
+    (215, 625, 485, 720),           # Boost Heroes (next to End Battle before the first troop; seen 22 Nov)
     (1320, 560, 1600, 720),         # damage and stars
     (0, 712, 1600, 900),            # troop bar
 )
