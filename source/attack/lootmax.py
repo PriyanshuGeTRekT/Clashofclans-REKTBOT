@@ -219,6 +219,70 @@ def find_unknown_cards(vision, tabs, frame):
     return found[:UNKNOWN_CARD_MAX]
 
 
+# ------------------------------------------------------------------ spells go where the troops are
+# FIX (22 Nov): every Rage went on one strip of the heroes' route (the line from the heroes to the
+# detected Town Hall, which is often misread or left over from the previous base) while the Dragons
+# fought along the other three sides. Troop spells are now aimed from where the troops were really
+# dropped: the drop points are split into groups round the base, and each spell goes a little inside
+# its group, towards the middle of the map.
+MAP_CENTRE = (800, 430)
+RAGE_DEPTH = 125                     # px inside the drop line: where troops meet the first buildings
+SUPPORT_DEPTH = 215                  # Freeze and the like: just ahead of the troops
+RUN_GAP = 300                        # px between two drops that are not one line of troops
+TROOP_SPELLS = ('spell_rage', 'spell_haste', 'spell_heal')
+_drop_log = []                       # every troop drop of the running attack (screen points)
+
+
+def _inside(p, depth):
+    """`p` moved `depth` px towards the middle of the map (never past it)."""
+    dx, dy = MAP_CENTRE[0] - p[0], MAP_CENTRE[1] - p[1]
+    dist = math.hypot(dx, dy) or 1.0
+    step = min(depth, dist * 0.8)
+    return p[0] + dx / dist * step, p[1] + dy / dist * step
+
+
+def _troop_groups(drops, k):
+    """The middle points of k groups of drop points going round the base, biggest groups first.
+    The drops are first cut into runs wherever two neighbours are far apart (the bottom corner under
+    the troop bar, the side left free for the heroes), so no group reaches across such a gap; the k
+    groups are then shared out over the runs by their size. Empty when nothing was dropped."""
+    if not drops or k <= 0:
+        return []
+    pts = sorted(drops, key=lambda p: math.atan2(p[1] - MAP_CENTRE[1], p[0] - MAP_CENTRE[0]))
+    gaps = [math.dist(pts[i], pts[(i + 1) % len(pts)]) for i in range(len(pts))]
+    cut = (gaps.index(max(gaps)) + 1) % len(pts)
+    pts = pts[cut:] + pts[:cut]
+    runs = [[pts[0]]]
+    for a, b in zip(pts, pts[1:]):
+        if math.dist(a, b) > RUN_GAP:
+            runs.append([])
+        runs[-1].append(b)
+    k = min(k, len(pts))
+    # share the groups out: the biggest run first, one more group where a group covers most points
+    shares = [0] * len(runs)
+    for _ in range(k):
+        i = max(range(len(runs)), key=lambda j: len(runs[j]) / (shares[j] + 1))
+        shares[i] += 1
+    groups = []
+    for run, n in zip(runs, shares):
+        for i in range(n):
+            chunk = run[i * len(run) // n:(i + 1) * len(run) // n]
+            if chunk:
+                groups.append((len(chunk), (sum(p[0] for p in chunk) / len(chunk),
+                                            sum(p[1] for p in chunk) / len(chunk))))
+    groups.sort(key=lambda g: -g[0])
+    return [g[1] for g in groups]
+
+
+def _spell_targets(drops, n, depth):
+    """n spell targets `depth` px inside the troop groups (several spells on one group are spread
+    along it instead of stacked)."""
+    groups = _troop_groups(drops, n)
+    if not groups:
+        return []
+    return [_inside(groups[i % len(groups)], depth + 70 * (i // len(groups))) for i in range(n)]
+
+
 # ------------------------------------------------------------------ nothing stays in the bar
 def _tap_field(p, r, human):
     """Drop on `p` (wobbled by r). A point on a button (End Battle, Boost Heroes, Next, the loot
@@ -230,6 +294,7 @@ def _tap_field(p, r, human):
         if not tap_is_safe(q):
             return False
     tap_raw(*q)
+    _drop_log.append(q)
     return True
 
 
@@ -309,7 +374,9 @@ def run_attack(adb, vision, active_config=None):
     tabs = _read_bar(vision)
     snapshot = read_battle_snapshot(vision, tabs, prefixes=('troop_', 'event_', 'spell_', 'squad_'),
                                     log_prefix='LOOTMAX')
-    th = vision.get_townhall_pos()
+    del _drop_log[:]
+    # the Town Hall of this base only: get_townhall_pos falls back to the previous base's position
+    th = vision.find_townhall() or MAP_CENTRE
     try:
         unknown = find_unknown_cards(vision, tabs, vision.grab()) if cfg.get('LOOTMAX_USE_UNKNOWN', True) else []
     except Exception as e:                       # never let this extra stop the attack
@@ -416,15 +483,37 @@ def run_attack(adb, vision, active_config=None):
             _pause(0.08, 0.3, human)
         used.add(spell)
 
-    def on_path(start_f, step):
-        return lambda i: _lerp(hero_center, th, min(0.85, start_f + i * step))
+    # the heroes walk in from where most of them were dropped, towards the middle of the map
+    hero_from = hero_center
+    if spots:
+        placed = list(spots.values())
+        hero_from = max(placed, key=lambda p: sum(1 for q in placed if math.dist(p, q) < 220))
 
-    # 2b) Rage (and other troop-boost spells) on the heroes' path as they walk in
+    def on_path(start_f, step):
+        return lambda i: _lerp(hero_from, MAP_CENTRE, min(0.85, start_f + i * step))
+
+    def cast_on_troops(sp, depth, label):
+        """Cast `sp` on the troop groups; with heroes on the field and 4 or more copies, one copy goes
+        on the heroes' route. False when no troop was dropped (the caller then uses the heroes' route)."""
+        n = int(snapshot.get(sp, 0) or 0) or 1
+        for_heroes = 1 if (deployed and n >= 4) else 0
+        targets = _spell_targets(_drop_log, n - for_heroes, depth)
+        if not targets:
+            return False
+        if for_heroes:
+            targets.append(on_path(0.3, 0.0)(0))
+        cast(sp, lambda i: targets[min(i, len(targets) - 1)], label)
+        return True
+
+    # 2b) Rage, Haste and Heal on the troops (one on the heroes when there are enough); spells made for
+    # the heroes (Heroic, Jump, Invisibility) on the heroes' route
     path_spells = [sp for sp in PATH_SPELLS if sp in tabs]
     if path_spells:
         _pause(0.6, 1.5, human)
         for sp in path_spells:
-            cast(sp, on_path(random.uniform(0.32, 0.48) if human else 0.4, 0.12), "on the heroes' path")
+            if sp in TROOP_SPELLS and cast_on_troops(sp, RAGE_DEPTH, 'on the troops'):
+                continue
+            cast(sp, on_path(random.uniform(0.25, 0.35) if human else 0.3, 0.12), "on the heroes' route")
 
     # 2c) spell cards without a picture (e.g. a new spell): on the heroes' path as well, where a boost,
     # a heal or a damage spell all do some good
@@ -463,6 +552,8 @@ def run_attack(adb, vision, active_config=None):
     if core_support:
         _pause(2.0, 4.0, human)
         for sp in core_support:
+            if cast_on_troops(sp, SUPPORT_DEPTH, 'ahead of the troops'):
+                continue
             ring = random.uniform(0, 6.28) if human else 0
             cast(sp, lambda i, r=ring: (th[0] + 55 * math.cos(r + i * 2.1),
                                         th[1] + 40 * math.sin(r + i * 2.1)), 'on the core')
@@ -488,13 +579,14 @@ def run_attack(adb, vision, active_config=None):
     leftover = [k for k in tabs if k.startswith('spell_') and k not in used and k not in CORE_SPELLS]
     for sp in leftover:
         _pause(0.3, 0.9, human)
-        cast(sp, lambda i: th, 'on the core')
+        if not cast_on_troops(sp, RAGE_DEPTH + 40, 'on the troops'):
+            cast(sp, lambda i: th, 'on the core')
 
     # 4d) spells beyond the right edge of a scrolling bar (13+ cards): Revive and the like over the
     # heroes, the rest on the core
     try:
         from attack.attacklogic import deploy_hidden_cards
-        over_heroes = _lerp(hero_center, th, 0.62)
+        over_heroes = _lerp(hero_from, MAP_CENTRE, 0.45)
         # troops found there go where a hero went in: a spot the game accepted
         hidden_spot = spots[deployed[0]] if deployed else TOP_CORNER
         deploy_hidden_cards(vision, tabs, th, log_prefix='LOOTMAX', troop_point=hidden_spot,
